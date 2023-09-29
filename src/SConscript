@@ -1,0 +1,6 @@
+
+env = Environment()
+env.Append(CPPPATH = ['#/./', '#inc', ])
+sources = env.Object(env.Glob('#/src/*.cpp'))
+library = env.StaticLibrary('blitz_query_cpp', sources)
+env.Alias("Build", [library])

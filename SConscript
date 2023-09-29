@@ -1,3 +1,3 @@
 
-SConscript('src')
+SConscript('src/SConscript')
 # SConscript('tests/unit')
