@@ -9,13 +9,13 @@ namespace blitz_query_cpp
     class token
     {
     public:
-        const std::basic_string_view<CharT> value;
-        const index_t pos;
-        const index_t size;
-        const token_type type;
-
+        std::basic_string_view<CharT> value;
+        index_t pos;
+        index_t size;
+        token_type type;
+        
         token(std::basic_string_view<CharT> token_value, index_t pos, index_t size, token_type type)
-            : value(token_string), pos(pos), size(size), type(type)
+            : value(token_value), pos(pos), size(size), type(type)
         {
         }
 

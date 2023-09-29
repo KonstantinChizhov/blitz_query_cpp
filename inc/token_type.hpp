@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 namespace blitz_query_cpp
 {
@@ -11,6 +12,7 @@ namespace blitz_query_cpp
         LParen,           // (
         RParen,           // )
         Colon,            // :
+        Equal,            // =
         Comma,            // considered as whitespace
         StringLiteral,    // "Hello"
         IntLiteral,       // 42
@@ -23,4 +25,6 @@ namespace blitz_query_cpp
         Comment,          // #comment<newline>
         InvalidToken,     // Error indicator
     };
+
+    std::string token_type_name(token_type);
 }

@@ -9,6 +9,7 @@
             "command": "scons",
             "args": [
                 "build",
+                "-j 4"
             ],
             "group": "build",
             "presentation": {
@@ -19,11 +20,12 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "unit_tests",
+            "label": "build unit tests",
             "type": "shell",
             "command": "scons",
             "args": [
                 "unit_tests",
+              //  "-j 4",
             ],
             "group": "build",
             "presentation": {
@@ -31,7 +33,20 @@
                 "reveal": "silent"
             },
             // Use the standard MS compiler pattern to detect errors, warnings and infos
-            "problemMatcher": "$msCompile"
+            "problemMatcher": {
+                "base": "$msCompile",
+                "fileLocation": "autoDetect"
+            },
+        },
+        {
+            "label": "run unit tests",
+            "type": "shell",
+            "command": "build/tests/unit/blitz_query_cpp_test.exe",
+            "group": "build",
+            "presentation": {
+                // Reveal the output only if unrecognized errors occur.
+                "reveal":"always"
+            }
         }
     ]
 }
