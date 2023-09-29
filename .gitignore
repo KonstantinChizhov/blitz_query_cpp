@@ -1,0 +1,17 @@
+lost+found/
+*.keep
+*.keep.*
+default
+[dD]ebug
+[Rr]elease
+settings
+*.dep
+*.aws
+bin
+obj
+*.depend
+*.layout
+build
+.sconsign.dblite
+*.pyc
+*.o
