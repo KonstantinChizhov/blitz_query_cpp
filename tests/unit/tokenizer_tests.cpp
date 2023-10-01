@@ -14,7 +14,10 @@ TEST(Tokenizer, Empty)
 
 TEST(Tokenizer, TokenizeQuery1)
 {
-    std::string query = "query{\r\n\
+    std::string query = "\"\"\" \
+    This is a description \
+\"\"\"\
+    query{\r\n\
   file(skip: 0, take : 10 where:{name:{contains:\"\\\"\"}}) {\r\n\
     pageInfo {\r\n\
       hasNextPage\r\n\
@@ -22,8 +25,6 @@ TEST(Tokenizer, TokenizeQuery1)
     }\r\n\
     items{\r\n\
       filename : name,\r\n\
-      Id,\r\n\
-      bucket_id,\r\n\
       bucket,\r\n\
       {\r\n\
         name\r\n\
@@ -39,9 +40,9 @@ TEST(Tokenizer, TokenizeQuery1)
     int token_count = 0;
     while (token.type != token_type::End && token.type != token_type::InvalidToken)
     {
-        // std::cout << token_type_name(token.type) << "\t" << token.pos << "\t" << token.value << std::endl;
+        std::cout << token_type_name(token.type) << "\t" << token.pos << "\t" << token.value << std::endl;
         token = tokenizer.next_token();
         token_count++;
     }
-    ASSERT_EQ(token_count, 48);
+    ASSERT_EQ(token_count, 42);
 }

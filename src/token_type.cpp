@@ -19,14 +19,22 @@ namespace blitz_query_cpp
             return "LParen";
         case token_type::RParen:
             return "RParen";
+        case token_type::LBracket:
+            return "LBracket";
+        case token_type::RBracket:
+            return "RBracket";
+        case token_type::NotNull:
+            return "NotNull";
+        case token_type::Union:
+            return "Union";
         case token_type::Colon:
             return "Colon";
         case token_type::Equal:
             return "Equal";
-        case token_type::Comma:
-            return "Comma";
         case token_type::StringLiteral:
             return "StringLiteral";
+        case token_type::StringBlock:
+            return "StringBlock";
         case token_type::IntLiteral:
             return "IntLiteral";
         case token_type::FloatLiteral:

@@ -6,12 +6,12 @@ namespace blitz_query_cpp
 {
     inline bool is_whitespace(char ch)
     {
-        return std::isspace(ch);
+        return std::isspace(ch) || ch == ',';
     }
 
     inline bool is_whitespace(wchar_t ch)
     {
-        return std::iswspace(ch);
+        return std::iswspace(ch) || ch == L',';
     }
 
     inline bool is_name_char(char ch)
@@ -50,6 +50,7 @@ namespace blitz_query_cpp
         std::basic_string_view<CharT> query;
         index_t current_pos = 0;
         using token_t = token<CharT>;
+        int chars_left() { return query.size() - current_pos; }
 
     public:
         tokenizer(std::basic_string_view<CharT> query)
@@ -82,8 +83,14 @@ namespace blitz_query_cpp
                 return single_char_token(token_type::RParen);
             case ':':
                 return single_char_token(token_type::Colon);
-            case ',':
-                return single_char_token(token_type::Comma);
+            case '[':
+                return single_char_token(token_type::LBracket);
+            case ']':
+                return single_char_token(token_type::RBracket);
+            case '!':
+                return single_char_token(token_type::NotNull);
+            case '|':
+                return single_char_token(token_type::Union);
             case '.':
                 return handle_dot();
             case '=':
@@ -97,7 +104,7 @@ namespace blitz_query_cpp
             case '"':
                 return read_string();
             default:
-                if (std::isdigit(ch) || ch == '-')
+                if (std::isdigit(ch) || ch == '-' || ch == '+')
                 {
                     return read_number();
                 }
@@ -195,57 +202,126 @@ namespace blitz_query_cpp
         {
             current_pos++;
             index_t start_pos = current_pos;
+            bool block_string = false;
+            if (chars_left() >= 5) // could not be a block string """ """
+            {
+                // check block string
+                if (query[current_pos] == '"' && query[current_pos + 1] == '"')
+                {
+                    block_string = true;
+                    current_pos += 2;
+                    start_pos += 2;
+                }
+            }
+
             while (current_pos < query.size())
             {
                 CharT ch = query[current_pos];
                 if (ch == '\\') // escape sequence will be decoded later
                 {
+                    // TODO: unicode codepoints \u
                     current_pos += 2; // skip backslash and escaped char
                     if (current_pos >= query.size())
                     {
-                        return token_t(query.substr(current_pos - 1, 1), current_pos - 1, 1, token_type::InvalidToken);
+                        return invalid_token_before(1);
                     }
                     ch = query[current_pos];
                 }
                 current_pos++;
                 if (ch == '"')
                 {
-                    break;
+                    if (!block_string)
+                    {
+                        break;
+                    }
+                    if (chars_left() < 2)
+                    {
+                        return invalid_token_before(0);
+                    }
+                    if (query[current_pos] == '"' && query[current_pos + 1] == '"') // block string end
+                    {
+                        break;
+                    }
                 }
             }
             index_t len = current_pos - start_pos - 1;
-            return token_t(query.substr(start_pos, len), start_pos, len, token_type::StringLiteral);
+            if (block_string)
+            {
+                current_pos += 2;
+            }
+            auto value = unescape_string_value(query.substr(start_pos, len));
+            return token_t(value, start_pos, len, block_string ? token_type::StringBlock : token_type::StringLiteral);
+        }
+
+        token_t invalid_token_before(index_t offset)
+        {
+            return token_t(query.substr(current_pos - offset, 1), current_pos - offset, 1, token_type::InvalidToken);
         }
 
         token_t read_number()
         {
             index_t start_pos = current_pos;
             token_type type = token_type::IntLiteral;
-            if(query[current_pos] == '-')
+            bool has_dot = false;
+            bool has_exponent = false;
+
+            if (query[current_pos] == '-')
             {
                 current_pos++;
             }
             while (current_pos < query.size())
             {
                 CharT ch = query[current_pos];
-                if (ch == '.' && type == token_type::IntLiteral) // float
+                if (ch == '.' && !has_dot) // float
+                {
+                    if (has_exponent)
+                    {
+                        return invalid_token_before(0);
+                    }
+                    current_pos++;
+                    if (current_pos >= query.size())
+                    {
+                        return invalid_token_before(1);
+                    }
+                    current_pos++;
+                    ch = query[current_pos];
+                    has_dot = true;
+                }
+                if ((ch == 'e' || ch == 'E') && !has_exponent) // float exp
                 {
                     current_pos++;
                     if (current_pos >= query.size())
                     {
-                        return token_t(query.substr(current_pos - 1, 1), current_pos - 1, 1, token_type::InvalidToken);
+                        return invalid_token_before(1);
+                    }
+                    if (ch == '-' || ch == '+') // exp sign
+                    {
+                        current_pos++;
+                        if (current_pos >= query.size())
+                        {
+                            return invalid_token_before(1);
+                        }
                     }
                     ch = query[current_pos];
-                    type = token_type::FloatLiteral;
+                    has_exponent = true;
                 }
+
                 if (!std::isdigit(ch))
                 {
                     break;
                 }
                 current_pos++;
             }
+            if (has_dot || has_exponent)
+                type = token_type::FloatLiteral;
             index_t len = current_pos - start_pos;
             return token_t(query.substr(start_pos, len), start_pos, len, type);
+        }
+
+        std::basic_string_view<CharT> unescape_string_value(std::basic_string_view<CharT> value)
+        {
+            // TODO: implement
+            return value;
         }
     };
 }

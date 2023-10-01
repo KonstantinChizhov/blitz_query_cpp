@@ -9,7 +9,7 @@ env['ASPPCOMSTR'] = "Assembling: $TARGET"
 env['LINKCOMSTR'] = "Linking: $TARGET"
 
 if env['CC'] == 'gcc':
-    env.Append(CXXFLAGS=['-std=gnu++17', '-O0', '-g'])
+    env.Append(CXXFLAGS=['-std=gnu++20', '-O0', '-g'])
 
 
 if env['CC'] == 'cl':
