@@ -1,20 +1,19 @@
 #pragma once
-#include "config.hpp"
+#include <global_definitions.hpp>
 #include <string_view>
-#include "token_type.hpp"
+#include <lexica/token_type.hpp>
 
 namespace blitz_query_cpp
 {
-    template <typename CharT>
     class token
     {
     public:
-        std::basic_string_view<CharT> value;
+        std::string_view value;
         index_t pos;
         index_t size;
         token_type type;
-        
-        token(std::basic_string_view<CharT> token_value, index_t pos, index_t size, token_type type)
+
+        token(std::string_view token_value, index_t pos, index_t size, token_type type)
             : value(token_value), pos(pos), size(size), type(type)
         {
         }
@@ -23,5 +22,7 @@ namespace blitz_query_cpp
             : value(), pos(0), size(0), type(type)
         {
         }
+
+        bool of_type(token_type type) const { return has_any_flag(this->type, type); }
     };
 }

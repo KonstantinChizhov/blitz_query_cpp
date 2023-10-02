@@ -75,6 +75,8 @@
         "xlocmon": "cpp",
         "xlocnum": "cpp",
         "xloctime": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "stack": "cpp",
+        "string_view": "cpp"
     }
 }

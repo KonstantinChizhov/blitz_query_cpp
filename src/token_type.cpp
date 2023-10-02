@@ -1,4 +1,4 @@
-#include "token_type.hpp"
+#include <lexica/token_type.hpp>
 
 namespace blitz_query_cpp
 {

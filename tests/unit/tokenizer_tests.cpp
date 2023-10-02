@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "tokenizer.hpp"
+#include <parser/tokenizer.hpp>
 
 using namespace blitz_query_cpp;
 
 TEST(Tokenizer, Empty)
 {
     std::string query = "";
-    tokenizer<char> tokenizer(query);
+    tokenizer tokenizer(query);
     auto token = tokenizer.next_token();
     ASSERT_EQ(token.type, token_type::End);
 }
@@ -34,7 +34,7 @@ TEST(Tokenizer, TokenizeQuery1)
   }\r\n\
 }";
 
-    tokenizer<char> tokenizer(query);
+    tokenizer tokenizer(query);
 
     auto token = tokenizer.next_token();
     int token_count = 0;
