@@ -18,7 +18,7 @@ namespace blitz_query_cpp
         {
         }
 
-        token(token_type type)
+        token(token_type type = token_type::None)
             : value(), pos(0), size(0), type(type)
         {
         }

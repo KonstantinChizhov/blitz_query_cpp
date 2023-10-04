@@ -3,7 +3,7 @@
 namespace blitz_query_cpp
 {
 
-    std::string token_type_name(token_type type)
+    std::string enum_name(token_type type)
     {
         switch (type)
         {

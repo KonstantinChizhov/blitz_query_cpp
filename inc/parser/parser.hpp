@@ -4,19 +4,30 @@
 #include <syntax/document.hpp>
 #include <error_code.hpp>
 #include <util/crc_hash.hpp>
+#include <util/enum.hpp>
 #include <format>
+#include <stack>
 
 namespace blitz_query_cpp
 {
+    enum NodeParseOptions
+    {
+        NodeParseDefault = 0,
+        NodeIsLeaf = 1,
+        ParseNodeIfMatch = 2
+    };
+
+    DECLARE_ENUM_OPERATIONS(NodeParseOptions);
+
     class parser
     {
-        tokenizer tokenizer;
         document &doc;
+        tokenizer_t tokenizer;
         token current_token;
-        syntax_node *current_node;
-
+        std::stack<syntax_node *> nodes_stack;
         std::string error_msg;
         error_code_t error_code = error_code_t::OK;
+        index_t last_token_end = 0;
 
         template <class... Args>
         void report_error(error_code_t code, std::string_view fmt, Args &&...args)
@@ -24,15 +35,26 @@ namespace blitz_query_cpp
             error_code = code;
             error_msg = std::vformat(fmt, std::make_format_args(args...));
         }
+        syntax_node &current_node() { return *nodes_stack.top(); }
+        void pop_node()
+        {
+            update_node_size_and_content();
+            if (nodes_stack.size() == 1)
+            {
+                report_error(error_code_t::SyntaxError, "Unbalanced nodes stack");
+            }
+            nodes_stack.pop();
+        }
 
-        bool unexpected_token();
-        syntax_node &get_new_node(syntax_node &parent);
+        [[nodiscard]] bool unexpected_token();
+        [[nodiscard]] bool create_new_node(syntax_node_type type, bool is_leaf);
         syntax_node &last_node() { return doc.all_nodes.back(); }
+        index_t count_tokens();
 
     public:
         parser(document &doc_)
             : doc(doc_),
-              tokenizer(doc.doc_value),
+              tokenizer(doc_.doc_value),
               current_token(token_type::None)
         {
         }
@@ -40,24 +62,38 @@ namespace blitz_query_cpp
         std::string get_error_msg() const { return error_msg; }
         error_code_t get_error_code() const { return error_code; }
 
-        bool parse();
-        bool next_token(bool expect_eof = false);
-        bool parse_definitions();
-        bool parse_leaf_node(syntax_node_type type, token_type expected_types);
-        bool parse_operation_definition();
-        bool parse_short_operation_definition();
-        bool parse_variable_definitions();
-        bool parse_directives(bool isConstant);
-        bool parse_selection_set();
-        bool parse_type_extension();
-        bool parse_input_object_type_definition();
-        bool parse_enum_type_definition();
-        bool parse_union_type_definition();
-        bool parse_interface_type_definition();
-        bool parse_object_type_definition();
-        bool parse_scalar_type_definition();
-        bool parse_schema_definition();
-        bool parse_directive_definition();
-        bool parse_fragment_definition();
+        [[nodiscard]] bool parse();
+
+    private:
+        [[nodiscard]] bool expect_token(token_type expected_types);
+        [[nodiscard]] bool next_token();
+        [[nodiscard]] bool parse_arguments(bool is_constant);
+        [[nodiscard]] bool parse_definitions();
+        [[nodiscard]] bool parse_directive_definition();
+        [[nodiscard]] bool parse_directive(bool is_constant);
+        [[nodiscard]] bool parse_directives(bool isConstant);
+        [[nodiscard]] bool parse_enum_type_definition();
+        [[nodiscard]] bool parse_fragment_definition();
+        [[nodiscard]] bool parse_input_object_type_definition();
+        [[nodiscard]] bool parse_interface_type_definition();
+        [[nodiscard]] bool parse_list(bool is_constant);
+        [[nodiscard]] bool parse_node(syntax_node_type type, token_type expected_types, NodeParseOptions opts = NodeParseDefault);
+        [[nodiscard]] bool parse_object_type_definition();
+        [[nodiscard]] bool parse_object(bool is_constant);
+        [[nodiscard]] bool parse_operation_definition();
+        [[nodiscard]] bool parse_scalar_type_definition();
+        [[nodiscard]] bool parse_schema_definition();
+        [[nodiscard]] bool parse_selection_set();
+        [[nodiscard]] bool parse_selection();
+        [[nodiscard]] bool parse_short_operation_definition();
+        [[nodiscard]] bool parse_type_extension();
+        [[nodiscard]] bool parse_type_reference();
+        [[nodiscard]] bool parse_union_type_definition();
+        [[nodiscard]] bool parse_value_literal(bool is_constant);
+        [[nodiscard]] bool parse_variable_definition();
+        [[nodiscard]] bool parse_variable_definitions();
+        [[nodiscard]] bool parse_fragment();
+        [[nodiscard]] bool parse_field();
+        void update_node_size_and_content();
     };
 }

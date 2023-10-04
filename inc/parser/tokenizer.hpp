@@ -4,19 +4,23 @@
 
 namespace blitz_query_cpp
 {
-    class tokenizer
+    class tokenizer_t
     {
         std::string_view query;
         index_t current_pos = 0;
         int chars_left() { return query.size() - current_pos; }
 
     public:
-        tokenizer(const tokenizer &) = delete;
-        tokenizer &operator=(const tokenizer &) = delete;
 
-        tokenizer(std::string_view query)
-            : query(query)
+        tokenizer_t(std::string_view query_)
+            : query(query_)
         {
+            // skip utf-8 BOM
+            if (query[0] == 0xEF && query.size() > 3)
+            {
+                if (query[1] == 0xBB && query[2] == 0xBF)
+                    current_pos += 3;
+            }
         }
 
         token next_token();

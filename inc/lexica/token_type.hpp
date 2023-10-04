@@ -33,5 +33,5 @@ namespace blitz_query_cpp
 
     DECLARE_ENUM_OPERATIONS(token_type)
 
-    std::string token_type_name(token_type);
+    std::string enum_name(token_type);
 }

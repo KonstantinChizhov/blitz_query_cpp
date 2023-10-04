@@ -7,7 +7,7 @@ using namespace blitz_query_cpp;
 TEST(Tokenizer, Empty)
 {
     std::string query = "";
-    tokenizer tokenizer(query);
+    tokenizer_t tokenizer(query);
     auto token = tokenizer.next_token();
     ASSERT_EQ(token.type, token_type::End);
 }
@@ -34,13 +34,13 @@ TEST(Tokenizer, TokenizeQuery1)
   }\r\n\
 }";
 
-    tokenizer tokenizer(query);
+    tokenizer_t tokenizer(query);
 
     auto token = tokenizer.next_token();
     int token_count = 0;
     while (token.type != token_type::End && token.type != token_type::InvalidToken)
     {
-        std::cout << token_type_name(token.type) << "\t" << token.pos << "\t" << token.value << std::endl;
+        std::cout << enum_name(token.type) << "\t" << token.pos << "\t" << token.size << "\t" << token.value << std::endl;
         token = tokenizer.next_token();
         token_count++;
     }

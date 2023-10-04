@@ -10,6 +10,9 @@ namespace blitz_query_cpp
         SyntaxError,
         UnmatchedBraces,
         UnexpectedToken,
-        InvalidToken
+        InvalidToken,
+        InvalidOperationType,
+        InternalError,
+        NameExpected,
     };
 }

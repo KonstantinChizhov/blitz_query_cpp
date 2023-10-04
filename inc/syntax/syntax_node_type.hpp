@@ -1,9 +1,12 @@
+#include <string>
+
 namespace blitz_query_cpp
 {
     enum class syntax_node_type
     {
         None = 0,
         Document,
+        Comment,
         Name,
         Variable,
         Argument,
@@ -49,4 +52,7 @@ namespace blitz_query_cpp
         OptionalModifier,
         RequiredModifier,
     };
+
+    std::string enum_name(syntax_node_type);
+ 
 }

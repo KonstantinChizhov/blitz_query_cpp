@@ -22,13 +22,13 @@ inline bool is_newline_char(char ch)
     return ch == '\n' || ch == '\r';
 }
 
-token tokenizer::next_token()
+token tokenizer_t::next_token()
 {
     eat_whitespace();
 
     if (current_pos >= query.size())
     {
-        return token(token_type::End);
+        return token(std::string_view(), query.size(), 0, token_type::End);
     }
 
     char ch = query[current_pos];
@@ -79,9 +79,11 @@ token tokenizer::next_token()
     }
 }
 
-void tokenizer::eat_whitespace()
+void tokenizer_t::eat_whitespace()
 {
-    while (current_pos < query.size())
+    if (current_pos >= query.size())
+        return;
+    do
     {
         char ch = query[current_pos];
         if (!is_whitespace(ch))
@@ -89,17 +91,17 @@ void tokenizer::eat_whitespace()
             break;
         }
         current_pos++;
-    }
+    }while (current_pos < query.size());
 }
 
-token tokenizer::single_char_token(token_type type)
+token tokenizer_t::single_char_token(token_type type)
 {
     index_t current = current_pos;
     current_pos++;
     return token(query.substr(current, 1), current, 1, type);
 }
 
-token tokenizer::handle_dot()
+token tokenizer_t::handle_dot()
 {
     if (query.size() - current_pos > 3)
     {
@@ -112,7 +114,7 @@ token tokenizer::handle_dot()
     return single_char_token(token_type::MemberAccess);
 }
 
-token tokenizer::read_name(index_t skipChars, token_type type)
+token tokenizer_t::read_name(index_t skipChars, token_type type)
 {
     index_t start_pos = current_pos;
     current_pos += skipChars;
@@ -139,7 +141,7 @@ token tokenizer::read_name(index_t skipChars, token_type type)
     return token(query.substr(start_pos, len), start_pos, len, type);
 }
 
-token tokenizer::read_comment()
+token tokenizer_t::read_comment()
 {
     eat_whitespace();
     index_t start_pos = current_pos;
@@ -156,12 +158,12 @@ token tokenizer::read_comment()
     return token(query.substr(start_pos, len), start_pos, len, token_type::Comment);
 }
 
-token tokenizer::handle_eq()
+token tokenizer_t::handle_eq()
 {
     return token(query.substr(current_pos, 1), current_pos++, 1, token_type::Equal);
 }
 
-token tokenizer::read_string()
+token tokenizer_t::read_string()
 {
     current_pos++;
     index_t start_pos = current_pos;
@@ -216,12 +218,12 @@ token tokenizer::read_string()
     return token(value, start_pos, len, block_string ? token_type::StringBlock : token_type::StringLiteral);
 }
 
-token tokenizer::invalid_token_before(index_t offset)
+token tokenizer_t::invalid_token_before(index_t offset)
 {
     return token(query.substr(current_pos - offset, 1), current_pos - offset, 1, token_type::InvalidToken);
 }
 
-token tokenizer::read_number()
+token tokenizer_t::read_number()
 {
     index_t start_pos = current_pos;
     token_type type = token_type::IntLiteral;
@@ -281,7 +283,7 @@ token tokenizer::read_number()
     return token(query.substr(start_pos, len), start_pos, len, type);
 }
 
-std::string_view tokenizer::unescape_string_value(std::string_view value)
+std::string_view tokenizer_t::unescape_string_value(std::string_view value)
 {
     // TODO: implement
     return value;

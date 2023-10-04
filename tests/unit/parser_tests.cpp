@@ -30,5 +30,10 @@ TEST(Parser, ParseQuery1)
     document doc(query);
 
     parser parser(doc);
-    parser.parse();
+    EXPECT_TRUE(parser.parse());
+
+    for(auto& node : doc.all_nodes)
+    {
+      std::cout << enum_name(node.type) << "\t(" << node.pos << ", " << node.size << "): '" << node.content << "'" << std::endl;
+    }
 }

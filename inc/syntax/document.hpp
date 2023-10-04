@@ -13,16 +13,16 @@ namespace blitz_query_cpp
     {
     public:
         std::string doc_value;
-        std::vector<token> tokens;
         std::vector<syntax_node> all_nodes;
 
     public:
-        document(std::string doc)
-            : syntax_node{0, doc.size(), syntax_node_type::Document},
-              doc_value(std::move(doc))
+        document(std::string &doc)
+            : doc_value(doc)
         {
+            pos = 0;
+            size = doc.size(),
+            type = syntax_node_type::Document;
             syntax_node::content = doc_value;
         }
-
     };
 }
