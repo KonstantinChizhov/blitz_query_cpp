@@ -35,6 +35,7 @@ namespace blitz_query_cpp
             error_code = code;
             error_msg = std::vformat(fmt, std::make_format_args(args...));
         }
+
         syntax_node &current_node() { return *nodes_stack.top(); }
         void pop_node()
         {
@@ -66,6 +67,8 @@ namespace blitz_query_cpp
 
     private:
         [[nodiscard]] bool expect_token(token_type expected_types);
+        [[nodiscard]] bool parse_keyword_token(syntax_node_type type, std::string_view keyword);
+        [[nodiscard]] bool expect_keyword_token(std::string_view keyword);
         [[nodiscard]] bool next_token();
         [[nodiscard]] bool parse_arguments(bool is_constant);
         [[nodiscard]] bool parse_definitions();
@@ -94,6 +97,12 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_variable_definitions();
         [[nodiscard]] bool parse_fragment();
         [[nodiscard]] bool parse_field();
+        [[nodiscard]] bool parse_operation_type_definition();
+        [[nodiscard]] bool parse_named_type();
+        [[nodiscard]] bool parse_name();
+        [[nodiscard]] bool parse_argument_definitions();
+        [[nodiscard]] bool parse_implements_interfaces();
+        
         void update_node_size_and_content();
     };
 }

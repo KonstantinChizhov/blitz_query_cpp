@@ -60,6 +60,34 @@ bool parser::expect_token(token_type expected_types)
     return next_token();
 }
 
+bool parser::parse_keyword_token(syntax_node_type type, std::string_view keyword)
+{
+    if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
+    {
+        report_error(error_code_t::UnexpectedToken,
+                     "Expected keyword {} got: {} at {}",
+                     keyword,
+                     current_token.value,
+                     current_token.pos);
+        return false;
+    }
+    return parse_node(type, token_type::Name);
+}
+
+bool parser::expect_keyword_token(std::string_view keyword)
+{
+    if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
+    {
+        report_error(error_code_t::UnexpectedToken,
+                     "Expected keyword {} got: {} at {}",
+                     keyword,
+                     current_token.value,
+                     current_token.pos);
+        return false;
+    }
+    return next_token();
+}
+
 index_t parser::count_tokens()
 {
     tokenizer_t tokenizer{doc.doc_value};
@@ -90,9 +118,7 @@ void parser::update_node_size_and_content()
 
 bool parser::parse_definitions()
 {
-    if (!create_new_node(syntax_node_type::None, false))
-        return false;
-
+    // description
     if (parse_node(syntax_node_type::StringValue, token_type::StringBlock | token_type::StringLiteral, ParseNodeIfMatch | NodeIsLeaf))
         return true;
 
@@ -130,7 +156,6 @@ bool parser::parse_definitions()
     {
         return parse_short_operation_definition();
     }
-    pop_node();
     return unexpected_token();
 }
 
@@ -143,11 +168,6 @@ bool parser::parse_node(syntax_node_type type, token_type expected_types, NodePa
         return unexpected_token();
     }
     syntax_node &parent = current_node();
-    if (type == syntax_node_type::Name)
-    {
-        parent.name = current_token.value;
-        return next_token();
-    }
 
     if (!create_new_node(type, has_any_flag(opts, NodeIsLeaf)))
         return false;
@@ -161,23 +181,21 @@ bool parser::parse_node(syntax_node_type type, token_type expected_types, NodePa
 
 bool parser::parse_operation_definition()
 {
-    syntax_node &operation_node = current_node();
-    operation_node.type = syntax_node_type::OperationDefinition;
-
-    if (!parse_node(syntax_node_type::OperationTypeDefinition, token_type::Name, NodeIsLeaf))
-        return false;
-
-    operation_node.operation_type = parse_operation_type(last_node().content);
-
-    if (operation_node.operation_type == operation_type_t::None)
+    operation_type_t op_type = parse_operation_type(current_token.value);
+    if (op_type == operation_type_t::None)
     {
         report_error(error_code_t::InvalidOperationType, "Invalid operation type {}", last_node().content);
         return false;
     }
 
+    if (!parse_node(syntax_node_type::OperationDefinition, token_type::Name))
+        return false;
+    syntax_node &operation_node = current_node();
+    operation_node.operation_type = op_type;
+
     if (current_token.type == token_type::Name)
     {
-        if (!parse_node(syntax_node_type::Name, token_type::Name, NodeIsLeaf))
+        if (!parse_name())
             return false;
     }
 
@@ -194,12 +212,12 @@ bool parser::parse_operation_definition()
 
 bool parser::parse_short_operation_definition()
 {
-    if(!create_new_node(syntax_node_type::OperationDefinition, false))
+    if (!create_new_node(syntax_node_type::OperationDefinition, false))
         return false;
-    auto& node = current_node();
+    auto &node = current_node();
     node.operation_type = operation_type_t::Query;
     node.size = doc.doc_value.size() - node.pos;
-    if(!parse_selection_set())
+    if (!parse_selection_set())
         return false;
     pop_node();
     return true;
@@ -320,8 +338,7 @@ bool parser::parse_object(bool is_constant)
     {
         if (!create_new_node(syntax_node_type::ObjectField, false))
             return false;
-
-        if (!parse_node(syntax_node_type::Name, token_type::Name, NodeIsLeaf))
+        if (!parse_name())
             return false;
         if (!expect_token(token_type::Colon))
             return false;
@@ -349,7 +366,7 @@ bool parser::parse_type_reference()
     }
     else
     {
-        if (!parse_node(syntax_node_type::NamedType, token_type::Name))
+        if (!parse_named_type())
             return false;
     }
 
@@ -401,7 +418,7 @@ bool parser::parse_arguments(bool is_constant)
     {
         if (!create_new_node(syntax_node_type::Argument, false))
             return false;
-        if (!parse_node(syntax_node_type::Name, token_type::Name, NodeIsLeaf))
+        if (!parse_name())
             return false;
         if (!expect_token(token_type::Colon))
             return false;
@@ -462,7 +479,7 @@ bool parser::parse_field()
     {
         if (!expect_token(token_type::Colon))
             return false;
-        if (!parse_node(syntax_node_type::Name, token_type::Name, NodeIsLeaf))
+        if (!parse_name())
         {
             report_error(error_code_t::NameExpected, "Field name expected at {}", current_token.pos);
             return false;
@@ -491,6 +508,7 @@ bool parser::parse_field()
 
 bool parser::parse_fragment()
 {
+
     return false;
 }
 
@@ -501,6 +519,45 @@ bool parser::parse_type_extension()
 
 bool parser::parse_input_object_type_definition()
 {
+    if (!parse_keyword_token(syntax_node_type::InputObjectTypeDefinition, "input"))
+        return false;
+
+    if (!parse_name())
+        return false;
+
+    if (!parse_directives(false))
+        return false;
+
+    if (!expect_token(token_type::LBrace))
+        return false;
+
+    while (!current_token.of_type(token_type::RBrace))
+    {
+        if (!create_new_node(syntax_node_type::InputValueDefinition, false))
+            return false;
+        if (!parse_name())
+            return false;
+        if (!expect_token(token_type::Colon))
+            return false;
+        if (!parse_type_reference())
+            return false;
+        if (current_token.of_type(token_type::Equal))
+        {
+            if (!next_token())
+                return false;
+            if (!parse_value_literal(true))
+                return false;
+        }
+        if (!parse_directives(true))
+            return false;
+
+        pop_node();
+    }
+
+    if (!expect_token(token_type::RBrace))
+        return false;
+
+    pop_node();
     return true;
 }
 
@@ -521,25 +578,166 @@ bool parser::parse_interface_type_definition()
 
 bool parser::parse_object_type_definition()
 {
+    if (!parse_keyword_token(syntax_node_type::InputObjectTypeDefinition, "type"))
+        return false;
+
+    if (!parse_name())
+        return false;
+
+    if (!parse_implements_interfaces())
+        return false;
+
+    if (!parse_directives(false))
+        return false;
+
+    if (!expect_token(token_type::LBrace))
+        return false;
+
+    while (!current_token.of_type(token_type::RBrace))
+    {
+        if (!create_new_node(syntax_node_type::FieldDefinition, false))
+            return false;
+        if (!parse_name())
+            return false;
+        if (!parse_argument_definitions())
+            return false;
+        if (!expect_token(token_type::Colon))
+            return false;
+        if (!parse_type_reference())
+            return false;
+
+        if (!parse_directives(true))
+            return false;
+
+        pop_node();
+    }
+
+    if (!expect_token(token_type::RBrace))
+        return false;
+
+    pop_node();
     return true;
+    return true;
+}
+
+bool parser::parse_implements_interfaces()
+{
+    return false;
+}
+
+bool parser::parse_argument_definitions()
+{
+    return false;
+}
+
+bool parser::parse_name()
+{
+    if (!current_token.of_type(token_type::Name))
+    {
+        return unexpected_token();
+    }
+    syntax_node &parent = current_node();
+
+    parent.name = current_token.value;
+    return next_token();
 }
 
 bool parser::parse_scalar_type_definition()
 {
+    if (!parse_node(syntax_node_type::ScalarTypeDefinition, token_type::Name))
+        return false;
+
+    if (!parse_name())
+        return false;
+
+    if (!parse_directives(true))
+        return false;
+
+    pop_node();
     return true;
 }
 
 bool parser::parse_schema_definition()
 {
+    if (!parse_keyword_token(syntax_node_type::SchemaDefinition, "schema"))
+        return false;
+
+    if (!parse_directives(true))
+        return false;
+
+    if (!expect_token(token_type::LBrace))
+        return false;
+
+    while (!current_token.of_type(token_type::RBrace))
+    {
+        if (!parse_operation_type_definition())
+            return false;
+    }
+
+    if (!expect_token(token_type::RBrace))
+        return false;
+
+    pop_node();
     return true;
+}
+
+bool parser::parse_operation_type_definition()
+{
+    if (!create_new_node(syntax_node_type::OperationTypeDefinition, false))
+        return false;
+
+    auto op_type = parse_operation_type(current_token.value);
+    if (op_type == operation_type_t::None)
+    {
+        report_error(error_code_t::InvalidOperationType, "Invalid Operation Type: {}", current_token.value);
+        return false;
+    }
+    current_node().operation_type = op_type;
+
+    if (!expect_token(token_type::Name))
+        return false;
+
+    if (!expect_token(token_type::Colon))
+        return false;
+    if (!parse_named_type())
+        return false;
+
+    pop_node();
+    return true;
+}
+
+bool parser::parse_named_type()
+{
+    return parse_node(syntax_node_type::NamedType, token_type::Name);
 }
 
 bool parser::parse_directive_definition()
 {
+    if (!parse_keyword_token(syntax_node_type::DirectiveDefinition, "directive"))
+        return false;
+
+    if (!parse_node(syntax_node_type::Name, token_type::Directive, NodeIsLeaf))
+        return false;
+
     return true;
 }
 
 bool parser::parse_fragment_definition()
 {
+    if (!parse_keyword_token(syntax_node_type::FragmentDefinition, "fragment"))
+        return false;
+    if (!parse_name())
+        return false;
+    if (!parse_variable_definitions())
+        return false;
+    if (!expect_keyword_token("on"))
+        return false;
+    if (!parse_named_type())
+        return false;
+    if (!parse_directives(false))
+        return false;
+    if (!parse_selection_set())
+        return false;
+    pop_node();
     return true;
 }

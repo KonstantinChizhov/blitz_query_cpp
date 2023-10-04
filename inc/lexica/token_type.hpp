@@ -24,7 +24,7 @@ namespace blitz_query_cpp
         FloatLiteral = (1 << 14),     // 3.14
         ParameterLiteral = (1 << 15), // $id
         MemberAccess = (1 << 16),     // foo.bar
-        FragmentInclude = (1 << 17),  // ...fragment
+        FragmentSpread = (1 << 17),  // ...
         Directive = (1 << 18),        // @include | @skip
         End = (1 << 19),              // end of dodument
         Comment = (1 << 20),          // #comment<newline>

@@ -108,7 +108,9 @@ token tokenizer_t::handle_dot()
         // ...fragmentName
         if (query[current_pos + 1] == '.' && query[current_pos + 2] == '.')
         {
-            return read_name(3, token_type::FragmentInclude);
+            index_t current = current_pos;
+            current_pos += 3;
+            return token(query.substr(current, 3), current, 3, token_type::FragmentSpread);
         }
     }
     return single_char_token(token_type::MemberAccess);
