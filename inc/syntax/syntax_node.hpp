@@ -2,6 +2,7 @@
 #include <global_definitions.hpp>
 #include <syntax/syntax_node_type.hpp>
 #include <syntax/nullability.hpp>
+#include <syntax/operation_type.hpp>
 #include <string_view>
 #include <variant>
 #include <span>
@@ -30,12 +31,13 @@ namespace blitz_query_cpp
         std::string_view content;
         std::string_view name;
         std::string_view alias;
-        syntax_node *parent;
-        syntax_node *selection_set;
+        syntax_node *parent = nullptr;
+        syntax_node *selection_set = nullptr;
 
         node_span children; // all node children
         node_span directives;
-        node_span arguments_or_variables; // arguments or variables defunition depending on node type
+        node_span arguments;
+        node_span variables;
 
         union
         {
@@ -43,33 +45,8 @@ namespace blitz_query_cpp
             operation_type_t operation_type;
         };
 
-        bool add_child(syntax_node &child_node)
-        {
-            return add_child(&child_node);
-        }
-
-        bool add_child(syntax_node *child_node)
-        {
-            size_t current_size = children.size();
-            if (static_storage *storage = std::get_if<static_storage>(&child_storage))
-            {
-                if (current_size + 1 < storage->max_size())
-                {
-                    children = node_span(storage->begin(), current_size + 1);
-                    children.back() = child_node;
-                    return true;
-                }
-                dynamic_storage dyn_store{storage->begin(), storage->end()};
-                child_storage = std::move(dyn_store);
-            }
-            if (dynamic_storage *storage = std::get_if<dynamic_storage>(&child_storage))
-            {
-                storage->push_back(child_node);
-                children = node_span(storage->begin(), storage->end());
-                return true;
-            }
-            return false;
-        }
+        bool add_child(syntax_node *child_node);
+        bool add_child(syntax_node &child_node) { return add_child(&child_node); }
 
     private:
         std::variant<

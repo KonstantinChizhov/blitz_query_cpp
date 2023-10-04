@@ -143,16 +143,19 @@ bool parser::parse_node(syntax_node_type type, token_type expected_types, NodePa
         return unexpected_token();
     }
     syntax_node &parent = current_node();
+    if (type == syntax_node_type::Name)
+    {
+        parent.name = current_token.value;
+        return next_token();
+    }
+
     if (!create_new_node(type, has_any_flag(opts, NodeIsLeaf)))
         return false;
     syntax_node &node = last_node();
     node.pos = current_token.pos;
     node.size = current_token.size;
     node.content = current_token.value;
-    if (type == syntax_node_type::Name)
-    {
-        parent.name = node.content;
-    }
+
     return next_token();
 }
 
@@ -191,11 +194,20 @@ bool parser::parse_operation_definition()
 
 bool parser::parse_short_operation_definition()
 {
+    if(!create_new_node(syntax_node_type::OperationDefinition, false))
+        return false;
+    auto& node = current_node();
+    node.operation_type = operation_type_t::Query;
+    node.size = doc.doc_value.size() - node.pos;
+    if(!parse_selection_set())
+        return false;
+    pop_node();
     return true;
 }
 
 bool parser::parse_variable_definitions()
 {
+    size_t child_count = current_node().children.size();
     if (current_token.of_type(token_type::LParen))
     {
         if (!next_token())
@@ -208,9 +220,10 @@ bool parser::parse_variable_definitions()
                 return false;
             }
         }
+        auto &node = current_node();
+        node.variables = node.children.subspan(child_count);
         return expect_token(token_type::RParen);
     }
-
     return true;
 }
 
@@ -222,7 +235,8 @@ bool parser::parse_variable_definition()
     }
     if (!parse_node(syntax_node_type::VariableDefinition, token_type::ParameterLiteral))
         return false;
-    current_node().name = current_node().content;
+    auto &var_node = current_node();
+    var_node.name = var_node.content;
 
     if (!expect_token(token_type::Colon))
         return false;
@@ -236,9 +250,12 @@ bool parser::parse_variable_definition()
         if (!parse_value_literal(true))
             return false;
     }
-
+    size_t child_count = var_node.children.size();
     if (!parse_directives(true))
         return false;
+
+    var_node.directives = var_node.children.subspan(child_count);
+
     pop_node();
     return true;
 }
@@ -262,10 +279,11 @@ bool parser::parse_value_literal(bool is_constant)
 
     if (parse_node(syntax_node_type::EnumValue, token_type::Name, NodeIsLeaf | ParseNodeIfMatch))
     {
-        if (current_token.value == "true" || current_token.value == "false")
-            last_node().type = syntax_node_type::BoolValue;
-        if (current_token.value == "null")
-            last_node().type = syntax_node_type::NullValue;
+        syntax_node &node = last_node();
+        if (node.content == "true" || node.content == "false")
+            node.type = syntax_node_type::BoolValue;
+        if (node.content == "null")
+            node.type = syntax_node_type::NullValue;
         return true;
     }
 
@@ -336,18 +354,21 @@ bool parser::parse_type_reference()
     }
 
     (void)parse_node(syntax_node_type::NonNullType, token_type::NotNull, NodeIsLeaf | ParseNodeIfMatch);
-    
+
     pop_node();
     return true;
 }
 
 bool parser::parse_directives(bool is_constant)
 {
+    size_t child_count = current_node().children.size();
     while (current_token.of_type(token_type::Directive))
     {
         if (!parse_directive(is_constant))
             return false;
     }
+    auto &node = current_node();
+    node.directives = node.children.subspan(child_count);
     return true;
 }
 
@@ -367,8 +388,11 @@ bool parser::parse_directive(bool is_constant)
 
 bool parser::parse_arguments(bool is_constant)
 {
+
     if (!current_token.of_type(token_type::LParen))
         return true;
+
+    size_t child_count = current_node().children.size();
 
     if (!next_token())
         return false;
@@ -383,8 +407,12 @@ bool parser::parse_arguments(bool is_constant)
             return false;
         if (!parse_value_literal(is_constant))
             return false;
+
         pop_node();
     }
+
+    auto &node = current_node();
+    node.variables = node.children.subspan(child_count);
 
     return expect_token(token_type::RParen);
 }
@@ -394,13 +422,14 @@ bool parser::parse_selection_set()
     if (!parse_node(syntax_node_type::SelectionSet, token_type::LBrace))
         return false;
     syntax_node &selection_set_node = current_node();
+    selection_set_node.parent->selection_set = &selection_set_node;
 
     while (!current_token.of_type(token_type::RBrace))
     {
         if (!parse_selection())
             return false;
     }
-    if(!expect_token(token_type::RBrace))
+    if (!expect_token(token_type::RBrace))
         return false;
 
     pop_node();
@@ -443,8 +472,6 @@ bool parser::parse_field()
         selection_node.alias = selection_node.content;
         selection_node.size = selection_node.pos;
     }
-
-    index_t initial_childCount = selection_node.children.size();
 
     if (!parse_arguments(false))
         return false;
