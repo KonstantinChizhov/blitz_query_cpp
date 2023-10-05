@@ -40,7 +40,7 @@ TEST(Tokenizer, TokenizeQuery1)
     int token_count = 0;
     while (token.type != token_type::End && token.type != token_type::InvalidToken)
     {
-        std::cout << enum_name(token.type) << "\t" << token.pos << "\t" << token.size << "\t" << token.value << std::endl;
+        //std::cout << enum_name(token.type) << "\t" << token.pos << "\t" << token.size << "\t" << token.value << std::endl;
         token = tokenizer.next_token();
         token_count++;
     }

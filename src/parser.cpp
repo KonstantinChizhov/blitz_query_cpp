@@ -32,11 +32,6 @@ bool parser::parse()
     // reserve node storage to avoid future reallocations
     doc.all_nodes.reserve(token_count);
 
-    if (!next_token())
-        return false;
-
-    nodes_stack.push(&doc);
-
     while (current_token.type != token_type::End && current_token.type != token_type::InvalidToken)
     {
         if (!parse_definitions())
@@ -226,22 +221,23 @@ bool parser::parse_short_operation_definition()
 bool parser::parse_variable_definitions()
 {
     size_t child_count = current_node().children.size();
-    if (current_token.of_type(token_type::LParen))
-    {
-        if (!next_token())
-            return false;
+    if (!current_token.of_type(token_type::LParen))
+        return true;
 
-        while (!current_token.of_type(token_type::RParen))
+    if (!next_token())
+        return false;
+
+    while (!current_token.of_type(token_type::RParen))
+    {
+        if (!parse_variable_definition())
         {
-            if (!parse_variable_definition())
-            {
-                return false;
-            }
+            return false;
         }
-        auto &node = current_node();
-        node.variables = node.children.subspan(child_count);
-        return expect_token(token_type::RParen);
     }
+    auto &node = current_node();
+    node.variables = node.children.subspan(child_count);
+    return expect_token(token_type::RParen);
+
     return true;
 }
 
@@ -531,28 +527,8 @@ bool parser::parse_input_object_type_definition()
     if (!expect_token(token_type::LBrace))
         return false;
 
-    while (!current_token.of_type(token_type::RBrace))
-    {
-        if (!create_new_node(syntax_node_type::InputValueDefinition, false))
-            return false;
-        if (!parse_name())
-            return false;
-        if (!expect_token(token_type::Colon))
-            return false;
-        if (!parse_type_reference())
-            return false;
-        if (current_token.of_type(token_type::Equal))
-        {
-            if (!next_token())
-                return false;
-            if (!parse_value_literal(true))
-                return false;
-        }
-        if (!parse_directives(true))
-            return false;
-
-        pop_node();
-    }
+    if (!parse_argument_definitions())
+        return false;
 
     if (!expect_token(token_type::RBrace))
         return false;
@@ -627,7 +603,45 @@ bool parser::parse_implements_interfaces()
 
 bool parser::parse_argument_definitions()
 {
-    return false;
+    size_t child_count = current_node().children.size();
+    if (!current_token.of_type(token_type::LParen))
+        return true;
+
+    if (!next_token())
+        return false;
+
+    while (!current_token.of_type(token_type::RParen))
+    {
+        if (!parse_argument_definition())
+        {
+            return false;
+        }
+    }
+    auto &node = current_node();
+    node.arguments = node.children.subspan(child_count);
+    return expect_token(token_type::RParen);
+}
+
+bool parser::parse_argument_definition()
+{
+    if (!create_new_node(syntax_node_type::InputValueDefinition, false))
+        return false;
+    if (!parse_name())
+        return false;
+    if (!expect_token(token_type::Colon))
+        return false;
+    if (!parse_type_reference())
+        return false;
+    if (current_token.of_type(token_type::Equal))
+    {
+        if (!next_token())
+            return false;
+        if (!parse_value_literal(true))
+            return false;
+    }
+    if (!parse_directives(true))
+        return false;
+    pop_node();
 }
 
 bool parser::parse_name()

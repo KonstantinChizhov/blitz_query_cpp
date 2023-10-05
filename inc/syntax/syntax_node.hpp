@@ -32,13 +32,18 @@ namespace blitz_query_cpp
         std::string_view name;
         std::string_view alias;
         syntax_node *parent = nullptr;
-        syntax_node *selection_set = nullptr;
-
+        union
+        {
+            syntax_node *selection_set = nullptr;
+            syntax_node *definition_type;
+        };
         node_span children; // all node children
         node_span directives;
-        node_span arguments;
-        node_span variables;
-
+        union
+        {
+            node_span arguments;
+            node_span variables;
+        };
         union
         {
             nullability_t nullability;
