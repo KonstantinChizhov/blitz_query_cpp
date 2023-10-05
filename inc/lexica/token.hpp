@@ -23,6 +23,6 @@ namespace blitz_query_cpp
         {
         }
 
-        bool of_type(token_type type) const { return has_any_flag(this->type, type); }
+        bool of_type(token_type t) const { return has_any_flag(type, t); }
     };
 }

@@ -102,5 +102,6 @@ namespace blitz_query_cpp
         case syntax_node_type::RequiredModifier:
             return "RequiredModifier";
         }
+        return "Unknown";
     }
 }

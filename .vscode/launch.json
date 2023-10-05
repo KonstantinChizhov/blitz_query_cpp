@@ -5,15 +5,14 @@
         "name": "(Windows) Launch",
         "type": "cppvsdbg",
         "request": "launch",
-        "preLaunchTask": "build unit tests",
-        "program": "${workspaceFolder}/build/tests/unit/blitz_query_cpp_test.exe",
+        "preLaunchTask": "build",
         "args": [],
         "stopAtEntry": false,
         "cwd": "${fileDirname}",
         "environment": [],
         "console": "externalTerminal",
         "windows": {
-            "program": "${workspaceFolder}/build/tests/unit/blitz_query_cpp_test.exe"
+            "program": "${workspaceFolder}/build/Debug/test_runner.exe"
         }
     }
     ]

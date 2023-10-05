@@ -16,3 +16,4 @@ build
 *.pyc
 *.o
 /vc140.pdb
+/Testing/

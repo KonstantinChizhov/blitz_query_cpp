@@ -85,12 +85,12 @@ bool parser::expect_keyword_token(std::string_view keyword)
 
 index_t parser::count_tokens()
 {
-    tokenizer_t tokenizer{doc.doc_value};
+    tokenizer_t local_tokenizer{doc.doc_value};
     token t;
     index_t count = 0;
     do
     {
-        t = tokenizer.next_token();
+        t = local_tokenizer.next_token();
         count++;
     } while (!t.of_type(token_type::End | token_type::InvalidToken));
     return count;
@@ -162,7 +162,6 @@ bool parser::parse_node(syntax_node_type type, token_type expected_types, NodePa
             return false;
         return unexpected_token();
     }
-    syntax_node &parent = current_node();
 
     if (!create_new_node(type, has_any_flag(opts, NodeIsLeaf)))
         return false;
@@ -237,8 +236,6 @@ bool parser::parse_variable_definitions()
     auto &node = current_node();
     node.variables = node.children.subspan(child_count);
     return expect_token(token_type::RParen);
-
-    return true;
 }
 
 bool parser::parse_variable_definition()
@@ -581,19 +578,12 @@ bool parser::parse_object_type_definition()
             return false;
         if (!parse_type_reference())
             return false;
-
         if (!parse_directives(true))
             return false;
-
         pop_node();
     }
-
-    if (!expect_token(token_type::RBrace))
-        return false;
-
     pop_node();
-    return true;
-    return true;
+    return expect_token(token_type::RBrace);
 }
 
 bool parser::parse_implements_interfaces()
@@ -642,6 +632,7 @@ bool parser::parse_argument_definition()
     if (!parse_directives(true))
         return false;
     pop_node();
+    return true;
 }
 
 bool parser::parse_name()

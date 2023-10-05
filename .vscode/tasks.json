@@ -6,10 +6,15 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "scons",
+            "command": "cmake",
             "args": [
+                "--build",
                 "build",
-                "-j 4"
+                "--config",
+                "Debug",
+                "--target",
+                "ALL_BUILD",
+                "-j 10"
             ],
             "group": "build",
             "presentation": {
@@ -20,33 +25,21 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "build unit tests",
+            "label": "run unit tests",
             "type": "shell",
-            "command": "scons",
+            "command": "ctest",
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
             "args": [
-                "unit_tests",
-              //  "-j 4",
+                "-j10", "-C", "Debug", "-T", "test", "--output-on-failure", "-R", "^blitz_query_cpp_test$"
             ],
             "group": "build",
             "presentation": {
                 // Reveal the output only if unrecognized errors occur.
-                "reveal": "silent"
-            },
-            // Use the standard MS compiler pattern to detect errors, warnings and infos
-            "problemMatcher": {
-                "base": "$msCompile",
-                "fileLocation": "autoDetect"
-            },
-        },
-        {
-            "label": "run unit tests",
-            "type": "shell",
-            "command": "build/tests/unit/blitz_query_cpp_test.exe",
-            "group": "build",
-            "presentation": {
-                // Reveal the output only if unrecognized errors occur.
-                "reveal":"always"
+                "reveal": "always"
             }
         }
     ]
+    
 }

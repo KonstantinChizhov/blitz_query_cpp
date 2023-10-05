@@ -8,7 +8,7 @@ namespace blitz_query_cpp
     {
         std::string_view query;
         index_t current_pos = 0;
-        int chars_left() { return query.size() - current_pos; }
+        auto chars_left() { return query.size() - current_pos; }
 
     public:
 
