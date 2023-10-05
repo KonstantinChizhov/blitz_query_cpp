@@ -283,23 +283,43 @@ bool parser::parse_value_literal(bool is_constant)
         return true;
 
     if (parse_node(syntax_node_type::IntValue, token_type::IntLiteral, NodeIsLeaf | ParseNodeIfMatch))
+    {
+        syntax_node &node = last_node();
+        node.intValue = std::stoll(node.content.data());
         return true;
+    }
 
     if (parse_node(syntax_node_type::FloatValue, token_type::FloatLiteral, NodeIsLeaf | ParseNodeIfMatch))
+    {
+        syntax_node &node = last_node();
+        node.floatValue = std::stod(node.content.data());
         return true;
+    }
 
     if (parse_node(syntax_node_type::EnumValue, token_type::Name, NodeIsLeaf | ParseNodeIfMatch))
     {
         syntax_node &node = last_node();
-        if (node.content == "true" || node.content == "false")
+        if (node.content == "true") 
+         {
             node.type = syntax_node_type::BoolValue;
+            node.boolValue = true;
+        }
+        if(node.content == "false")
+        {
+            node.type = syntax_node_type::BoolValue;
+            node.boolValue = false;
+        }
         if (node.content == "null")
             node.type = syntax_node_type::NullValue;
         return true;
     }
 
     if (!is_constant && parse_node(syntax_node_type::Variable, token_type::ParameterLiteral, NodeIsLeaf | ParseNodeIfMatch))
+    {
+        syntax_node &node = last_node();
+        node.name = node.content;
         return true;
+    }
 
     return unexpected_token();
 }
@@ -362,9 +382,8 @@ bool parser::parse_type_reference()
         if (!parse_named_type())
             return false;
     }
-
     (void)parse_node(syntax_node_type::NonNullType, token_type::NotNull, NodeIsLeaf | ParseNodeIfMatch);
-
+    current_node().parent->definition_type = &current_node();
     pop_node();
     return true;
 }
@@ -398,7 +417,6 @@ bool parser::parse_directive(bool is_constant)
 
 bool parser::parse_arguments(bool is_constant)
 {
-
     if (!current_token.of_type(token_type::LParen))
         return true;
 

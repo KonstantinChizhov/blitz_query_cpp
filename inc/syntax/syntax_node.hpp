@@ -41,13 +41,16 @@ namespace blitz_query_cpp
         node_span directives;
         union
         {
-            node_span arguments;
+            node_span arguments = node_span();
             node_span variables;
         };
         union
         {
             nullability_t nullability;
             operation_type_t operation_type;
+            long long intValue = 0;
+            double floatValue;
+            bool boolValue;
         };
 
         bool add_child(syntax_node *child_node);

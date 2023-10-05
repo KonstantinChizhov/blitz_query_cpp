@@ -79,7 +79,7 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_definitions();
         [[nodiscard]] bool parse_directive_definition();
         [[nodiscard]] bool parse_directive(bool is_constant);
-        [[nodiscard]] bool parse_directives(bool isConstant);
+        [[nodiscard]] bool parse_directives(bool is_constant);
         [[nodiscard]] bool parse_enum_type_definition();
         [[nodiscard]] bool parse_field();
         [[nodiscard]] bool parse_fragment_definition();
