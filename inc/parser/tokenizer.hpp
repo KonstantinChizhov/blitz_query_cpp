@@ -16,7 +16,7 @@ namespace blitz_query_cpp
             : query(query_)
         {
             // skip utf-8 BOM
-            if (query[0] == 0xEF && query.size() > 3)
+            if (query.size() > 3 && query[0] == 0xEF )
             {
                 if (query[1] == 0xBB && query[2] == 0xBF)
                     current_pos += 3;
