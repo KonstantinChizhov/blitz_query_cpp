@@ -11,7 +11,7 @@ TEST(Parser, ParseArgumentDefinitions)
   doc.all_nodes.reserve(10);
   parser parser(doc);
   EXPECT_TRUE(parser.parse_argument_definitions());
-  ASSERT_EQ(doc.children.size(), 2);
+  ASSERT_EQ(doc.children.size(), 2u);
   ASSERT_EQ(doc.arguments.size(), doc.children.size());
 
   ASSERT_EQ(doc.children[0]->type, syntax_node_type::InputValueDefinition);
@@ -80,7 +80,35 @@ TEST(Parser, ParseDirectives)
   EXPECT_EQ(doc.directives[0]->arguments[0]->children[0]->name, "$foo");
 }
 
-TEST(Parser, LongQuery)
+TEST(Parser, ParseField)
+{
+  document doc("my_pic :\tpicture(size:128)@include(if:$foo){type data}");
+  doc.all_nodes.reserve(20);
+  parser parser(doc);
+  EXPECT_TRUE(parser.parse_field());
+  ASSERT_EQ(doc.children.size(), 1);
+  ASSERT_NE(doc.children[0]->selection_set, nullptr);
+  ASSERT_EQ(doc.children[0]->directives.size(), 1);
+  ASSERT_EQ(doc.children[0]->arguments.size(), 1);
+  ASSERT_EQ(doc.children[0]->selection_set->children.size(), 2);
+}
+
+TEST(Parser, ShortQuery)
+{
+  document doc("{file(skip:0,take:10){items{name Id}totalCount}}");
+  doc.all_nodes.reserve(20);
+  parser parser(doc);
+  EXPECT_TRUE(parser.parse());
+  ASSERT_EQ(doc.children.size(), 1);
+  EXPECT_EQ(doc.children[0]->type, syntax_node_type::OperationDefinition);
+  ASSERT_NE(doc.children[0]->selection_set, nullptr);
+  EXPECT_EQ(doc.children[0]->directives.size(), 0);
+  EXPECT_EQ(doc.children[0]->arguments.size(), 0);
+  ASSERT_EQ(doc.children[0]->selection_set->children.size(), 1);
+  EXPECT_EQ(doc.children[0]->selection_set->children[0]->arguments.size(), 2);
+}
+
+TEST(Parser, Query)
 {
   std::string query = "query files($pattern: String = \"\\\"\"){\r\n\
   file(skip: 0, take : 10 where:{name:{contains: $pattern}}) {\r\n\
@@ -101,8 +129,7 @@ TEST(Parser, LongQuery)
   }\r\n\
 }";
 
-  document doc(query);
-
+  document doc{std::string(query)};
   parser parser(doc);
   EXPECT_TRUE(parser.parse());
 

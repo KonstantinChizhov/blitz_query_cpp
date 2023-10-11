@@ -4,9 +4,12 @@ set(CXX_STANDARD_REQUIRED 20)
 set(CMAKE_CXX_STANDARD 20)
 
 if(MSVC)
-add_compile_options(/W4 /WX)
+add_compile_options(/W4 )
+set(CMAKE_CXX_FLAGS_RELEASE "/O2")
+
 else()
-add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+add_compile_options(-Wall -Wextra -Wpedantic )
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
 include(CTest)

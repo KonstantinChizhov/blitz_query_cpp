@@ -13,6 +13,27 @@
                 "--config",
                 "Debug",
                 "--target",
+                "all",
+                "-j 10"
+            ],
+            "group": "build",
+            "presentation": {
+                // Reveal the output only if unrecognized errors occur.
+                "reveal": "silent"
+            },
+            // Use the standard MS compiler pattern to detect errors, warnings and infos
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "Release",
+                "--target",
                 "ALL_BUILD",
                 "-j 10"
             ],
@@ -32,7 +53,7 @@
                 "cwd": "${workspaceFolder}/build"
             },
             "args": [
-                "-j10", "-C", "Debug", "-T", "test", "--output-on-failure", "-R", "^blitz_query_cpp_test$"
+                "-j10", "-C", "Debug", "-T", "test", "--verbose", "-R", "^blitz_query_cpp_test$"
             ],
             "group": "build",
             "presentation": {

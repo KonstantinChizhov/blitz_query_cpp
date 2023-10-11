@@ -8,7 +8,7 @@ namespace blitz_query_cpp
     {
         std::string_view query;
         index_t current_pos = 0;
-        auto chars_left() { return query.size() - current_pos; }
+        inline auto chars_left() { return query.size() - current_pos; }
 
     public:
 
@@ -16,9 +16,9 @@ namespace blitz_query_cpp
             : query(query_)
         {
             // skip utf-8 BOM
-            if (query.size() > 3 && query[0] == 0xEF )
+            if (query.size() > 3 && query[0] == '\xEF' )
             {
-                if (query[1] == 0xBB && query[2] == 0xBF)
+                if (query[1] == '\xBB' && query[2] == '\xBF')
                     current_pos += 3;
             }
         }
@@ -26,15 +26,15 @@ namespace blitz_query_cpp
         token next_token();
 
     private:
-        void eat_whitespace();
-        token single_char_token(token_type type);
-        token handle_dot();
-        token read_name(index_t skipChars, token_type type);
-        token read_comment();
-        token handle_eq();
-        token read_string();
-        token invalid_token_before(index_t offset);
-        token read_number();
-        std::string_view unescape_string_value(std::string_view value);
+        inline void eat_whitespace();
+        inline token single_char_token(token_type type);
+        inline token handle_dot();
+        inline token read_name(index_t skipChars, token_type type);
+        inline token read_comment();
+        inline token handle_eq();
+        inline token read_string();
+        inline token invalid_token_before(index_t offset);
+        inline token read_number();
+        inline std::string_view unescape_string_value(std::string_view value);
     };
 }

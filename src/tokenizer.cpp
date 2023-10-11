@@ -162,7 +162,8 @@ token tokenizer_t::read_comment()
 
 token tokenizer_t::handle_eq()
 {
-    return token(query.substr(current_pos, 1), current_pos++, 1, token_type::Equal);
+    index_t pos = current_pos++;
+    return token(query.substr(pos, 1), pos, 1, token_type::Equal);
 }
 
 token tokenizer_t::read_string()
