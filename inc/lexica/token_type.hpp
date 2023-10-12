@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <util/enum.hpp>
+#include <stdint.h>
 
 namespace blitz_query_cpp
 {
