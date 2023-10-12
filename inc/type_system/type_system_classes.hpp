@@ -8,17 +8,6 @@
 
 namespace blitz_query_cpp
 {
-    template <class T> 
-        requires ( T::name )
-    struct name_hash
-    {
-       
-
-        size_t operator()(const T &entity) const
-        {
-            return std::hash<std::string>{}(entity.name);
-        }
-    };
 
     struct type_system_object
     {
