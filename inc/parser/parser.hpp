@@ -29,6 +29,7 @@ namespace blitz_query_cpp
         std::string error_msg;
         error_code_t error_code = error_code_t::OK;
         index_t last_token_end = 0;
+        std::string_view current_description;
 
     public:
         parser(document &doc_)
@@ -77,6 +78,7 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_argument_definition();
         [[nodiscard]] bool parse_arguments(bool is_constant);
         [[nodiscard]] bool parse_definitions();
+        [[nodiscard]] bool parse_description();
         [[nodiscard]] bool parse_directive_definition();
         [[nodiscard]] bool parse_directive(bool is_constant);
         [[nodiscard]] bool parse_directives(bool is_constant);
@@ -90,7 +92,7 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_keyword_token(syntax_node_type type, std::string_view keyword);
         [[nodiscard]] bool parse_list(bool is_constant);
         [[nodiscard]] bool parse_name();
-        [[nodiscard]] bool parse_named_type();
+        [[nodiscard]] bool parse_named_type(NodeParseOptions opts = NodeParseDefault);
         [[nodiscard]] bool parse_node(syntax_node_type type, token_type expected_types, NodeParseOptions opts = NodeParseDefault);
         [[nodiscard]] bool parse_object_type_definition();
         [[nodiscard]] bool parse_object(bool is_constant);

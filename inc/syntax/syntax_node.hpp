@@ -31,6 +31,8 @@ namespace blitz_query_cpp
         std::string_view content;
         std::string_view name;
         std::string_view alias;
+        std::string_view description;
+        
         syntax_node *parent = nullptr;
         union
         {

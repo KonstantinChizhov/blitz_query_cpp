@@ -7,13 +7,13 @@
 namespace blitz_query_cpp
 {
     template <class T>
-    class named_list
+    class named_storage
     {
         std::unordered_map<std::string, T *> _name_map;
-        std::vector<T*> _values;
+        std::vector<T> _values;
 
     public:
-        named_list()
+        named_storage()
         {
             _values.reserve(SchemaChildListReserve);
             _name_map.reserve(SchemaChildListReserve);
@@ -25,10 +25,16 @@ namespace blitz_query_cpp
             _name_map.clear();
         }
 
-        void insert(T *item)
+        T* emplace(std::string_view name)
         {
-            _values.push_back(item);
-            _name_map.insert_or_assign(item->name, item);
+            if(_name_map.contains(name))
+            {
+                return nullptr;
+            }
+            T& item = _values.emplace_back();
+            item.name = name;
+            _name_map.insert_or_assign(item.name, &item);
+            return &item;
         }
 
         const auto &items() const { return _values; }

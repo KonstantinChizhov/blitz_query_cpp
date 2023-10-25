@@ -111,11 +111,20 @@ void parser::update_node_size_and_content()
     node.content = doc_view.substr(node.pos, node.size);
 }
 
+bool parser::parse_description()
+{
+    if (current_token.of_type(token_type::StringBlock | token_type::StringLiteral))
+    {
+        current_description = current_token.value;
+        return next_token();
+    }
+    return true;
+}
+
 bool parser::parse_definitions()
 {
-    // description
-    if (parse_node(syntax_node_type::StringValue, token_type::StringBlock | token_type::StringLiteral, ParseNodeIfMatch | NodeIsLeaf))
-        return true;
+    if (!parse_description())
+        return false;
 
     if (current_token.type == token_type::Name)
     {
@@ -169,7 +178,11 @@ bool parser::parse_node(syntax_node_type type, token_type expected_types, NodePa
     node.pos = current_token.pos;
     node.size = current_token.size;
     node.content = current_token.value;
-
+    if(current_description.size() > 0)
+    {
+        node.description = current_description;
+        current_description = std::string_view{};
+    }
     return next_token();
 }
 
@@ -299,12 +312,12 @@ bool parser::parse_value_literal(bool is_constant)
     if (parse_node(syntax_node_type::EnumValue, token_type::Name, NodeIsLeaf | ParseNodeIfMatch))
     {
         syntax_node &node = last_node();
-        if (node.content == "true") 
-         {
+        if (node.content == "true")
+        {
             node.type = syntax_node_type::BoolValue;
             node.boolValue = true;
         }
-        if(node.content == "false")
+        if (node.content == "false")
         {
             node.type = syntax_node_type::BoolValue;
             node.boolValue = false;
@@ -722,16 +735,16 @@ bool parser::parse_operation_type_definition()
 
     if (!expect_token(token_type::Colon))
         return false;
-    if (!parse_named_type())
+    if (!parse_named_type(NodeIsLeaf))
         return false;
 
     pop_node();
     return true;
 }
 
-bool parser::parse_named_type()
+bool parser::parse_named_type(NodeParseOptions opts)
 {
-    return parse_node(syntax_node_type::NamedType, token_type::Name);
+    return parse_node(syntax_node_type::NamedType, token_type::Name, opts);
 }
 
 bool parser::parse_directive_definition()
@@ -755,7 +768,7 @@ bool parser::parse_fragment_definition()
         return false;
     if (!expect_keyword_token("on"))
         return false;
-    if (!parse_named_type())
+    if (!parse_named_type(NodeIsLeaf))
         return false;
     if (!parse_directives(false))
         return false;

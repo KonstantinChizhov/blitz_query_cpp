@@ -78,7 +78,14 @@
         "xtree": "cpp",
         "stack": "cpp",
         "string_view": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "*.tcc": "cpp",
+        "cstdarg": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp"
     },
     "editor.tokenColorCustomizations": {
         "textMateRules": [

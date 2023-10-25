@@ -1,0 +1,167 @@
+﻿schema {
+  query: Query
+  mutation: Mutation
+}
+
+"Information about the offset pagination."
+type CollectionSegmentInfo {
+  "Indicates whether more items exist following the set defined by the clients arguments."
+  hasNextPage: Boolean!
+  "Indicates whether more items exist prior the set defined by the clients arguments."
+  hasPreviousPage: Boolean!
+}
+
+type Mutation {
+  add_file(file: fileDataInput): MutationIdResultOfGuid
+  update_file(file: fileDataInput where: fileFilterInput): MutationResult
+  delete_file(system_file: fileDataInput where: fileFilterInput): MutationResult
+}
+
+type MutationIdResultOfGuid {
+  insertedId: UUID!
+  countObjectsModified: Int!
+  operation: String!
+  objectName: String!
+}
+
+type MutationResult {
+  countObjectsModified: Int!
+  operation: String!
+  objectName: String!
+}
+
+type Query {
+  file(skip: Int take: Int where: fileFilterInput order: [fileSortInput!]): fileCollectionSegment
+}
+
+
+type file {
+  deleted: Boolean!
+  name: String
+  Id: UUID!
+}
+
+"A segment of a collection."
+type fileCollectionSegment {
+  "Information to aid in pagination."
+  pageInfo: CollectionSegmentInfo!
+  "A flattened list of the items."
+  items: [file]
+  totalCount: Int!
+}
+
+
+input BooleanOperationFilterInput {
+  eq: Boolean
+  neq: Boolean
+}
+
+input DateTimeOperationFilterInput {
+  eq: DateTime
+  neq: DateTime
+  in: [DateTime]
+  nin: [DateTime]
+  gt: DateTime
+  ngt: DateTime
+  gte: DateTime
+  ngte: DateTime
+  lt: DateTime
+  nlt: DateTime
+  lte: DateTime
+  nlte: DateTime
+}
+
+input IntOperationFilterInput {
+  eq: Int
+  neq: Int
+  in: [Int]
+  nin: [Int]
+  gt: Int
+  ngt: Int
+  gte: Int
+  ngte: Int
+  lt: Int
+  nlt: Int
+  lte: Int
+  nlte: Int
+}
+
+input ListFilterInputTypeOfSystem_fileFilterInput {
+  all: System_fileFilterInput
+  none: System_fileFilterInput
+  some: System_fileFilterInput
+  any: Boolean
+}
+
+input ListFilterInputTypeOfSystem_fileversionFilterInput {
+  all: System_fileversionFilterInput
+  none: System_fileversionFilterInput
+  some: System_fileversionFilterInput
+  any: Boolean
+}
+
+input StringOperationFilterInput {
+  and: [StringOperationFilterInput!]
+  or: [StringOperationFilterInput!]
+  eq: String
+  neq: String
+  contains: String
+  ncontains: String
+  in: [String]
+  nin: [String]
+  startsWith: String
+  nstartsWith: String
+  endsWith: String
+  nendsWith: String
+}
+
+input fileDataInput {
+  deleted: Boolean
+  name: String
+  Id: UUID
+}
+
+input fileFilterInput {
+  and: [fileFilterInput!]
+  or: [fileFilterInput!]
+  maxVersion: IntOperationFilterInput
+  deleted: BooleanOperationFilterInput
+  name: StringOperationFilterInput
+  Id: UuidOperationFilterInput
+}
+
+input fileSortInput {
+  deleted: SortEnumType
+  name: SortEnumType
+  Id: SortEnumType
+}
+
+
+input UuidOperationFilterInput {
+  eq: UUID
+  neq: UUID
+  in: [UUID]
+  nin: [UUID]
+  gt: UUID
+  ngt: UUID
+  gte: UUID
+  ngte: UUID
+  lt: UUID
+  nlt: UUID
+  lte: UUID
+  nlte: UUID
+}
+
+
+enum SortEnumType {
+  ASC
+  DESC
+}
+
+"The `@specifiedBy` directive is used within the type system definition language to provide a URL for specifying the behavior of custom scalar definitions."
+directive @specifiedBy("The specifiedBy URL points to a human-readable specification. This field will only read a result for scalar types." url: String!) on SCALAR
+
+"The `DateTime` scalar represents an ISO-8601 compliant date time type."
+scalar DateTime @specifiedBy(url: "https:\/\/www.graphql-scalars.com\/date-time")
+
+scalar UUID @specifiedBy(url: "https:\/\/tools.ietf.org\/html\/rfc4122")

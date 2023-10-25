@@ -33,7 +33,7 @@ TEST(Parser, ParseArguments)
   doc.all_nodes.reserve(20);
   parser parser(doc);
   EXPECT_TRUE(parser.parse_arguments(false));
-  ASSERT_EQ(doc.children.size(), 6);
+  ASSERT_EQ(doc.children.size(), 6u);
   ASSERT_EQ(doc.arguments.size(), doc.children.size());
 
   EXPECT_EQ(doc.children[0]->type, syntax_node_type::Argument);
@@ -64,7 +64,7 @@ TEST(Parser, ParseDirectives)
   doc.all_nodes.reserve(20);
   parser parser(doc);
   EXPECT_TRUE(parser.parse_directives(false));
-  ASSERT_EQ(doc.children.size(), 2);
+  ASSERT_EQ(doc.children.size(), 2u);
   ASSERT_EQ(doc.directives.size(), doc.children.size());
 
   EXPECT_EQ(doc.directives[0]->type, syntax_node_type::Directive);
@@ -73,9 +73,9 @@ TEST(Parser, ParseDirectives)
   EXPECT_EQ(doc.directives[0]->name, "@include");
   EXPECT_EQ(doc.directives[1]->name, "@custom");
 
-  ASSERT_EQ(doc.directives[0]->arguments.size(), 1);
+  ASSERT_EQ(doc.directives[0]->arguments.size(), 1u);
   EXPECT_EQ(doc.directives[0]->arguments[0]->name, "if");
-  ASSERT_EQ(doc.directives[0]->arguments[0]->children.size(), 1);
+  ASSERT_EQ(doc.directives[0]->arguments[0]->children.size(), 1u);
   EXPECT_EQ(doc.directives[0]->arguments[0]->children[0]->type, syntax_node_type::Variable);
   EXPECT_EQ(doc.directives[0]->arguments[0]->children[0]->name, "$foo");
 }
@@ -88,8 +88,8 @@ TEST(Parser, ParseField)
   EXPECT_TRUE(parser.parse_field());
   ASSERT_EQ(doc.children.size(), 1);
   ASSERT_NE(doc.children[0]->selection_set, nullptr);
-  ASSERT_EQ(doc.children[0]->directives.size(), 1);
-  ASSERT_EQ(doc.children[0]->arguments.size(), 1);
+  ASSERT_EQ(doc.children[0]->directives.size(), 1u);
+  ASSERT_EQ(doc.children[0]->arguments.size(), 1u);
   ASSERT_EQ(doc.children[0]->selection_set->children.size(), 2);
 }
 
@@ -99,13 +99,13 @@ TEST(Parser, ShortQuery)
   doc.all_nodes.reserve(20);
   parser parser(doc);
   EXPECT_TRUE(parser.parse());
-  ASSERT_EQ(doc.children.size(), 1);
+  ASSERT_EQ(doc.children.size(), 1u);
   EXPECT_EQ(doc.children[0]->type, syntax_node_type::OperationDefinition);
   ASSERT_NE(doc.children[0]->selection_set, nullptr);
-  EXPECT_EQ(doc.children[0]->directives.size(), 0);
-  EXPECT_EQ(doc.children[0]->arguments.size(), 0);
-  ASSERT_EQ(doc.children[0]->selection_set->children.size(), 1);
-  EXPECT_EQ(doc.children[0]->selection_set->children[0]->arguments.size(), 2);
+  EXPECT_EQ(doc.children[0]->directives.size(), 0u);
+  EXPECT_EQ(doc.children[0]->arguments.size(), 0u);
+  ASSERT_EQ(doc.children[0]->selection_set->children.size(), 1u);
+  EXPECT_EQ(doc.children[0]->selection_set->children[0]->arguments.size(), 2u);
 }
 
 TEST(Parser, Query)
