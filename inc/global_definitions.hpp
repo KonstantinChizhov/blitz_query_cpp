@@ -8,5 +8,4 @@ namespace blitz_query_cpp
 {
     using index_t = std::size_t;
     constexpr int MaxBuiltInChildNodes = 16;
-    constexpr int SchemaChildListReserve = 16;
 }

@@ -1,8 +1,9 @@
 #pragma once
 #include <global_definitions.hpp>
 #include <string>
-#include <util/named_list.hpp>
-#include <util/named_storage.hpp>
+#include <unordered_map>
+#include <optional>
+#include <optional>
 #include <type_system/type_system_classes.hpp>
 
 namespace blitz_query_cpp
@@ -10,15 +11,29 @@ namespace blitz_query_cpp
     class schema
     {
     public:
-        named_storage<output_type> types;
-        named_storage<interface_type> interfaces;
-        named_storage<input_type> input_types;
-        named_storage<enum_type> enums;
-        named_storage<directive_type> directives;
-        named_storage<scalar_type> scalars;
+        std::unordered_map<std::string, object_type> types;
+        std::unordered_map<std::string, directive_type> directives;
+
         std::string query_type_name;
         std::string mutation_type_name;
-    public:
 
+    public:
+        std::optional<object_type> create_type(type_kind kind, std::string_view name)
+        {
+            if (name.size() < 1)
+            {
+                return std::nullopt;
+                ;
+            }
+            auto res = types.try_emplace(std::string(name));
+            if (!res.second)
+            {
+                return std::nullopt;
+            }
+            object_type &obj = res.first->second;
+            obj.kind = kind,
+            obj.name = name;
+            return obj;
+        }
     };
 }

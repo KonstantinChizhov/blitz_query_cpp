@@ -1,9 +1,13 @@
 #pragma once
 #include <global_definitions.hpp>
 #include <type_system/type_kind.hpp>
-#include <util/named_list.hpp>
+#include <type_system/value_kind.hpp>
+#include <unordered_map>
+#include <optional>
+#include <vector>
 #include <string_view>
 #include <string>
+
 
 namespace blitz_query_cpp
 {
@@ -19,81 +23,59 @@ namespace blitz_query_cpp
 
     struct directive_type : type_system_object
     {
-        directive_type() { kind = type_kind::Directive; }
+        static constexpr type_kind static_type_kind = type_kind::Directive;
+        directive_type() { kind = static_type_kind; }
         bool is_repeatable;
         bool is_executable;
         bool is_type_system;
         bool is_public;
-        named_list<struct input_field> arguments;
+        std::unordered_map<std::string, struct field> arguments;
     };
 
-    struct directive 
+    struct directive_parameter
+    {
+        value_kind value_type;
+        std::string name;
+        std::string description;
+        std::string string_value;
+        long long int_value = 0;
+        double float_value = 0;
+        bool bool_value = false;
+        std::vector<directive_parameter> fields;
+    };
+
+    struct directive
     {
         std::string name;
         directive_type *directive_type;
-        
+        std::vector<directive_parameter> parameters;
     };
 
     struct type_system_object_with_directives : type_system_object
     {
-        named_storage<directive> directives;
-    };
+        std::vector<directive> directives;
 
-    struct enum_value : type_system_object_with_directives
-    {
-        std::string value;
-    };
-
-    struct enum_type : type_system_object_with_directives
-    {
-        named_list<enum_value> values;
-        enum_type() { kind = type_kind::Enum; }
+        directive &add_directive(std::string_view name)
+        {
+            directive &item = directives.emplace_back();
+            item.name = name;
+            return item;
+        }
     };
 
     struct field : type_system_object_with_directives
     {
         bool is_optional;
         int index;
-        struct object_type *declaring_type;
-        struct object_type *field_type;
-    };
-
-    struct input_field : field
-    {
-        struct input_type *declaring_type;
-        struct input_type *field_type;
         std::string default_value;
-    };
-
-    struct object_field : field
-    {
-        named_list<input_field *> arguments;
+        std::string declaring_type_name;
+        std::string field_type_name;
     };
 
     struct object_type : type_system_object_with_directives
     {
+        std::unordered_map<std::string, field> fields;
+        std::vector<std::string> implements;
     };
 
-    struct input_type : object_type
-    {
-        input_type() { kind = type_kind::InputObject; }
-        named_storage<input_field> fields;
-    };
-
-    struct output_type : object_type
-    {
-        output_type() { kind = type_kind::Object; }
-        named_list<output_type> implements;
-        named_storage<object_field> fields;
-    };
-
-    struct interface_type : output_type
-    {
-         interface_type() { kind = type_kind::Interface; }
-    };
-
-    struct scalar_type : type_system_object_with_directives
-    {
-        scalar_type() { kind = type_kind::Scalar; }
-    };
 }

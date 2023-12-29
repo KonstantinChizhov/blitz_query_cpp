@@ -7,7 +7,6 @@
 #include <util/enum.hpp>
 #include <format>
 #include <stack>
-#include <gtest/gtest_prod.h>
 
 namespace blitz_query_cpp
 {
