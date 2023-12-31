@@ -18,6 +18,12 @@ namespace blitz_query_cpp
             return false;
         }
         bool process_enum_value(object_type &enum_type, const syntax_node &enum_field_node);
+        bool process_argument(argument_collection &arguments, const syntax_node &enum_field_node);
+
+        bool report_type_already_defined(std::string_view type_name);
+        bool report_filed_already_defined(std::string_view type_name, std::string_view field_name);
+        bool process_parameter_value(parameter_value &param, const syntax_node &value_node);
+        bool process_params(std::vector<parameter_value> &arguments, const syntax_node &node);
 
     public:
         std::string get_error_msg() const { return error_msg; }
@@ -28,5 +34,6 @@ namespace blitz_query_cpp
         bool process_scalar_type_def(schema & schema, const syntax_node &definition);
         bool process_enum_type_def(schema & schema, const syntax_node &definition);
         bool process_directives(type_system_object_with_directives &type, const syntax_node &definition);
+        bool process_directive_type_def(schema & schema, const syntax_node &definition);
     };
 }

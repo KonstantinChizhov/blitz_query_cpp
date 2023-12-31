@@ -14,5 +14,6 @@ namespace blitz_query_cpp
         InvalidOperationType,
         InternalError,
         NameExpected,
+        InvalidDirectiveTarget
     };
 }

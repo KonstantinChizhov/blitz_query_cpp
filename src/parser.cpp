@@ -18,6 +18,12 @@ bool parser::create_new_node(syntax_node_type type, bool is_leaf)
     node.parent = &parent;
     node.pos = current_token.pos;
     node.type = type;
+    
+    if (current_description.size() > 0)
+    {
+        node.description = current_description;
+        current_description = std::string_view{};
+    }
 
     if (!parent.add_child(&node))
         return false;
@@ -69,15 +75,16 @@ bool parser::parse_keyword_token(syntax_node_type type, std::string_view keyword
     return parse_node(type, token_type::Name);
 }
 
-bool parser::expect_keyword_token(std::string_view keyword)
+bool parser::expect_keyword_token(std::string_view keyword, bool optional)
 {
     if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
     {
-        report_error(error_code_t::UnexpectedToken,
-                     "Expected keyword {} got: {} at {}",
-                     keyword,
-                     current_token.value,
-                     current_token.pos);
+        if (!optional)
+            report_error(error_code_t::UnexpectedToken,
+                         "Expected keyword '{}' got: '{}' at {}",
+                         keyword,
+                         current_token.value,
+                         current_token.pos);
         return false;
     }
     return next_token();
@@ -178,11 +185,7 @@ bool parser::parse_node(syntax_node_type type, token_type expected_types, NodePa
     node.pos = current_token.pos;
     node.size = current_token.size;
     node.content = current_token.value;
-    if(current_description.size() > 0)
-    {
-        node.description = current_description;
-        current_description = std::string_view{};
-    }
+   
     return next_token();
 }
 
@@ -395,7 +398,22 @@ bool parser::parse_type_reference()
         if (!parse_named_type())
             return false;
     }
-    (void)parse_node(syntax_node_type::NonNullType, token_type::NotNull, NodeIsLeaf | ParseNodeIfMatch);
+
+    auto & node = current_node();
+    index_t size = last_token_end - node.pos;
+    node.name = std::string_view(doc.doc_value).substr(node.pos, size);
+
+    if (current_token.of_type(token_type::NotNull))
+    {
+        current_node().nullability = nullability_t::Required;
+        if (!next_token())
+            return false;
+    }
+    else
+    {
+        current_node().nullability = nullability_t::Optional;
+    }
+    
     current_node().parent->definition_type = &current_node();
     pop_node();
     return true;
@@ -567,6 +585,49 @@ bool parser::parse_input_object_type_definition()
 
 bool parser::parse_enum_type_definition()
 {
+    if (!parse_keyword_token(syntax_node_type::EnumTypeDefinition, "enum"))
+        return false;
+
+    if (!parse_name())
+        return false;
+
+    if (!parse_directives(false))
+        return false;
+
+    if (!expect_token(token_type::LBrace))
+        return false;
+
+    if (!parse_enum_values())
+        return false;
+
+    if (!expect_token(token_type::RBrace))
+        return false;
+
+    pop_node();
+    return true;
+}
+
+bool parser::parse_enum_values()
+{
+    while (!current_token.of_type(token_type::RBrace))
+    {
+        if (!parse_enum_value())
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool parser::parse_enum_value()
+{
+    if (!create_new_node(syntax_node_type::EnumValueDefinition, false))
+        return false;
+    if (!parse_name())
+        return false;
+    if (!parse_directives(true))
+        return false;
+    pop_node();
     return true;
 }
 
@@ -645,6 +706,8 @@ bool parser::parse_argument_definitions()
 
 bool parser::parse_argument_definition()
 {
+    if (!parse_description())
+        return false;
     if (!create_new_node(syntax_node_type::InputValueDefinition, false))
         return false;
     if (!parse_name())
@@ -666,9 +729,9 @@ bool parser::parse_argument_definition()
     return true;
 }
 
-bool parser::parse_name()
+bool parser::parse_name(token_type name_type)
 {
-    if (!current_token.of_type(token_type::Name))
+    if (!current_token.of_type(name_type))
     {
         return unexpected_token();
     }
@@ -752,9 +815,44 @@ bool parser::parse_directive_definition()
     if (!parse_keyword_token(syntax_node_type::DirectiveDefinition, "directive"))
         return false;
 
-    if (!parse_node(syntax_node_type::Name, token_type::Directive, NodeIsLeaf))
+    if (!parse_name(token_type::Directive))
         return false;
 
+    if (!parse_argument_definitions())
+        return false;
+
+    if (!current_token.of_type(token_type::Name))
+        return report_error(error_code_t::UnexpectedToken, "Expected to see 'on' or 'repeatable' keyword while parsing directive '{}' at {}", current_node().name, current_token.pos);
+
+    if (expect_keyword_token("repeatable", true))
+        current_node().directive_target = directive_target_t::IsRepeatable;
+
+    if (!expect_keyword_token("on"))
+        return false;
+
+    directive_target_t target = directive_target_t::None;
+    do
+    {
+        if (current_token.of_type(token_type::Union))
+        {
+            if (!next_token())
+                return false;
+        }
+        if (!current_token.of_type(token_type::Name))
+        {
+            break;
+        }
+        target = parse_directive_target(current_token.value);
+        if (target != directive_target_t::None)
+        {
+            current_node().directive_target |= target;
+        }
+        if (!next_token())
+            return false;
+
+    } while (target != directive_target_t::None);
+
+    pop_node();
     return true;
 }
 

@@ -18,21 +18,20 @@ namespace blitz_query_cpp
         std::string mutation_type_name;
 
     public:
-        std::optional<object_type> create_type(type_kind kind, std::string_view name)
+        object_type* create_type(type_kind kind, std::string_view name)
         {
             if (name.size() < 1)
             {
-                return std::nullopt;
-                ;
+                return nullptr;
             }
             auto res = types.try_emplace(std::string(name));
             if (!res.second)
             {
-                return std::nullopt;
+                return nullptr;
             }
-            object_type &obj = res.first->second;
-            obj.kind = kind,
-            obj.name = name;
+            object_type *obj = &res.first->second;
+            obj->kind = kind,
+            obj->name = name;
             return obj;
         }
     };

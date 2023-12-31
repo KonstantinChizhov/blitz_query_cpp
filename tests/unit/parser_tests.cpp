@@ -23,8 +23,8 @@ TEST(Parser, ParseArgumentDefinitions)
   ASSERT_NE(doc.children[0]->definition_type, nullptr);
   ASSERT_NE(doc.children[1]->definition_type, nullptr);
 
-  ASSERT_NE(doc.children[0]->definition_type->name, "String");
-  ASSERT_NE(doc.children[0]->definition_type->name, "Int");
+  ASSERT_EQ(doc.children[0]->definition_type->name, "String");
+  ASSERT_EQ(doc.children[1]->definition_type->name, "Int");
 }
 
 TEST(Parser, ParseArguments)
@@ -86,11 +86,11 @@ TEST(Parser, ParseField)
   doc.all_nodes.reserve(20);
   parser parser(doc);
   EXPECT_TRUE(parser.parse_field());
-  ASSERT_EQ(doc.children.size(), 1);
+  ASSERT_EQ(doc.children.size(), 1u);
   ASSERT_NE(doc.children[0]->selection_set, nullptr);
   ASSERT_EQ(doc.children[0]->directives.size(), 1u);
   ASSERT_EQ(doc.children[0]->arguments.size(), 1u);
-  ASSERT_EQ(doc.children[0]->selection_set->children.size(), 2);
+  ASSERT_EQ(doc.children[0]->selection_set->children.size(), 2u);
 }
 
 TEST(Parser, ShortQuery)

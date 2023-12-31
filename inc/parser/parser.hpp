@@ -47,10 +47,11 @@ namespace blitz_query_cpp
 
     public: // for internal use and tests
         template <class... Args>
-        void report_error(error_code_t code, std::string_view fmt, Args &&...args)
+        bool report_error(error_code_t code, std::string_view fmt, Args &&...args)
         {
             error_code = code;
             error_msg = std::vformat(fmt, std::make_format_args(args...));
+            return false;
         }
 
         void pop_node()
@@ -70,7 +71,7 @@ namespace blitz_query_cpp
         syntax_node &last_node() { return doc.all_nodes.back(); }
         index_t count_tokens();
 
-        [[nodiscard]] bool expect_keyword_token(std::string_view keyword);
+        [[nodiscard]] bool expect_keyword_token(std::string_view keyword, bool optional = false);
         [[nodiscard]] bool expect_token(token_type expected_types);
         [[nodiscard]] bool next_token();
         [[nodiscard]] bool parse_argument_definitions();
@@ -82,6 +83,8 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_directive(bool is_constant);
         [[nodiscard]] bool parse_directives(bool is_constant);
         [[nodiscard]] bool parse_enum_type_definition();
+        [[nodiscard]] bool parse_enum_value();
+        [[nodiscard]] bool parse_enum_values();
         [[nodiscard]] bool parse_field();
         [[nodiscard]] bool parse_fragment_definition();
         [[nodiscard]] bool parse_fragment();
@@ -90,7 +93,7 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_interface_type_definition();
         [[nodiscard]] bool parse_keyword_token(syntax_node_type type, std::string_view keyword);
         [[nodiscard]] bool parse_list(bool is_constant);
-        [[nodiscard]] bool parse_name();
+        [[nodiscard]] bool parse_name(token_type name_type = token_type::Name);
         [[nodiscard]] bool parse_named_type(NodeParseOptions opts = NodeParseDefault);
         [[nodiscard]] bool parse_node(syntax_node_type type, token_type expected_types, NodeParseOptions opts = NodeParseDefault);
         [[nodiscard]] bool parse_object_type_definition();

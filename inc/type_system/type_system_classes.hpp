@@ -2,6 +2,7 @@
 #include <global_definitions.hpp>
 #include <type_system/type_kind.hpp>
 #include <type_system/value_kind.hpp>
+#include <syntax/directive_target.hpp>
 #include <unordered_map>
 #include <optional>
 #include <vector>
@@ -11,7 +12,6 @@
 
 namespace blitz_query_cpp
 {
-
     struct type_system_object
     {
         type_kind kind;
@@ -21,18 +21,17 @@ namespace blitz_query_cpp
         std::string deprecation_reason;
     };
 
+    using argument_collection = std::unordered_map<std::string, struct input_value>;
+
     struct directive_type : type_system_object
     {
         static constexpr type_kind static_type_kind = type_kind::Directive;
         directive_type() { kind = static_type_kind; }
-        bool is_repeatable;
-        bool is_executable;
-        bool is_type_system;
-        bool is_public;
-        std::unordered_map<std::string, struct field> arguments;
+        directive_target_t target = directive_target_t::None;
+        argument_collection arguments;
     };
 
-    struct directive_parameter
+    struct parameter_value
     {
         value_kind value_type;
         std::string name;
@@ -41,14 +40,14 @@ namespace blitz_query_cpp
         long long int_value = 0;
         double float_value = 0;
         bool bool_value = false;
-        std::vector<directive_parameter> fields;
+        std::vector<parameter_value> fields;
     };
 
     struct directive
     {
         std::string name;
         directive_type *directive_type;
-        std::vector<directive_parameter> parameters;
+        std::vector<parameter_value> parameters;
     };
 
     struct type_system_object_with_directives : type_system_object
@@ -63,13 +62,23 @@ namespace blitz_query_cpp
         }
     };
 
+    struct input_value: type_system_object_with_directives
+    {
+        int index = 0;
+        parameter_value default_value;
+        std::string declaring_type_name;
+        std::string field_type_name;
+        uint32_t field_type_nullability = 0;
+        int list_nesting_depth = 0;
+    };
+
     struct field : type_system_object_with_directives
     {
         bool is_optional;
         int index;
-        std::string default_value;
         std::string declaring_type_name;
         std::string field_type_name;
+        argument_collection arguments;
     };
 
     struct object_type : type_system_object_with_directives

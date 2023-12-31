@@ -1,6 +1,7 @@
 #pragma once
 #include <global_definitions.hpp>
 #include <syntax/syntax_node_type.hpp>
+#include <syntax/directive_target.hpp>
 #include <syntax/nullability.hpp>
 #include <syntax/operation_type.hpp>
 #include <string_view>
@@ -32,15 +33,16 @@ namespace blitz_query_cpp
         std::string_view name;
         std::string_view alias;
         std::string_view description;
-        
         syntax_node *parent = nullptr;
+        node_span children; // all node children
+        node_span directives;
+
         union
         {
             syntax_node *selection_set = nullptr;
             syntax_node *definition_type;
         };
-        node_span children; // all node children
-        node_span directives;
+        
         union
         {
             node_span arguments = node_span();
@@ -53,6 +55,7 @@ namespace blitz_query_cpp
             long long intValue = 0;
             double floatValue;
             bool boolValue;
+            directive_target_t directive_target;
         };
 
         bool add_child(syntax_node *child_node);

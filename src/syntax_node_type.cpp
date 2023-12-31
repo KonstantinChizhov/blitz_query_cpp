@@ -101,6 +101,11 @@ namespace blitz_query_cpp
             return "OptionalModifier";
         case syntax_node_type::RequiredModifier:
             return "RequiredModifier";
+
+        case syntax_node_type::ValueNode:
+        case syntax_node_type::ShcemaNode:
+        default:
+            return "Unknown";
         }
         return "Unknown";
     }
