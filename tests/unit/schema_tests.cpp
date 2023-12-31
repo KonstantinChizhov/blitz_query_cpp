@@ -41,7 +41,8 @@ TEST(Schema, ParseEnumDef)
    ASSERT_EQ(res, true);
    ASSERT_EQ(my_schema.types.size(), 1u);
    auto &type = my_schema.types.begin()->second;
-   ;
+   EXPECT_EQ(type.directives.size(), 1u);
+
    EXPECT_EQ(type.description, "enum description");
    ASSERT_EQ(type.kind, type_kind::Enum);
    ASSERT_EQ(type.fields.size(), 3u);
@@ -68,14 +69,34 @@ TEST(Schema, ParseDirectiveDef)
    ASSERT_EQ(type.arguments.contains("param"), true);
    ASSERT_EQ(type.arguments.contains("foo"), true);
 
-   EXPECT_EQ(type.arguments["param"].field_type_name, "String");
+   EXPECT_EQ(type.arguments["param"].field_type.name, "String");
    EXPECT_EQ(type.arguments["param"].field_type_nullability, 0u);
    EXPECT_EQ(type.arguments["param"].description, "param descr");
    EXPECT_EQ(type.arguments["param"].default_value.value_type, value_kind::None);
 
-   EXPECT_EQ(type.arguments["foo"].field_type_name, "Foo");
+   EXPECT_EQ(type.arguments["foo"].field_type.name, "Foo");
    EXPECT_EQ(type.arguments["foo"].field_type_nullability, 1u);
    EXPECT_EQ(type.arguments["foo"].description, "");
    EXPECT_EQ(type.arguments["foo"].default_value.value_type, value_kind::Object);
+
+}
+
+
+TEST(Schema, ParseUnionDef)
+{
+   std::string scm = "\"union description\" union MyUnion @foo = User | Group";
+   schema my_schema;
+   schema_parser parser;
+   bool res = parser.parse(my_schema, scm);
+   ASSERT_EQ(res, true);
+
+   auto &type = my_schema.types.begin()->second;
+   EXPECT_EQ(type.directives.size(), 1u);
+
+   EXPECT_EQ(type.description, "union description");
+   ASSERT_EQ(type.kind, type_kind::Union);
+   ASSERT_EQ(type.implements.size(), 2u);
+   ASSERT_EQ(type.implements.contains("User"), true);
+   ASSERT_EQ(type.implements.contains("Group"), true);
 
 }

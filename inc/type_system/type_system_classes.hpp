@@ -62,12 +62,18 @@ namespace blitz_query_cpp
         }
     };
 
+    struct type_reference
+    {
+        std::string name;
+        struct object_type *type;
+    };
+
     struct input_value: type_system_object_with_directives
     {
         int index = 0;
         parameter_value default_value;
-        std::string declaring_type_name;
-        std::string field_type_name;
+        type_reference declaring_type;
+        type_reference field_type;
         uint32_t field_type_nullability = 0;
         int list_nesting_depth = 0;
     };
@@ -76,15 +82,15 @@ namespace blitz_query_cpp
     {
         bool is_optional;
         int index;
-        std::string declaring_type_name;
-        std::string field_type_name;
+        type_reference declaring_type;
+        type_reference field_type;
         argument_collection arguments;
     };
 
     struct object_type : type_system_object_with_directives
     {
         std::unordered_map<std::string, field> fields;
-        std::vector<std::string> implements;
+        std::unordered_map<std::string, type_reference> implements;
     };
 
 }

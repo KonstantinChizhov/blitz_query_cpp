@@ -17,7 +17,16 @@ namespace blitz_query_cpp
             error_msg = std::vformat(fmt, std::make_format_args(args...));
             return false;
         }
+
+        template <class... Args>
+        bool report_error(const syntax_node &node, std::string_view fmt, Args &&...args)
+        {
+            error_msg = std::vformat(fmt, std::make_format_args(args...)) + std::format(" at: {}", node.pos);
+            return false;
+        }
         bool process_enum_value(object_type &enum_type, const syntax_node &enum_field_node);
+        bool process_union_type(object_type &union_type, const syntax_node &union_member_def);
+
         bool process_argument(argument_collection &arguments, const syntax_node &enum_field_node);
 
         bool report_type_already_defined(std::string_view type_name);
@@ -35,5 +44,6 @@ namespace blitz_query_cpp
         bool process_enum_type_def(schema & schema, const syntax_node &definition);
         bool process_directives(type_system_object_with_directives &type, const syntax_node &definition);
         bool process_directive_type_def(schema & schema, const syntax_node &definition);
+        bool process_union_type_def(schema &schema, const syntax_node &definition);
     };
 }

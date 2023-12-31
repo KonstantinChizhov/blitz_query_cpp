@@ -18,7 +18,7 @@ bool parser::create_new_node(syntax_node_type type, bool is_leaf)
     node.parent = &parent;
     node.pos = current_token.pos;
     node.type = type;
-    
+
     if (current_description.size() > 0)
     {
         node.description = current_description;
@@ -185,7 +185,7 @@ bool parser::parse_node(syntax_node_type type, token_type expected_types, NodePa
     node.pos = current_token.pos;
     node.size = current_token.size;
     node.content = current_token.value;
-   
+
     return next_token();
 }
 
@@ -399,7 +399,7 @@ bool parser::parse_type_reference()
             return false;
     }
 
-    auto & node = current_node();
+    auto &node = current_node();
     index_t size = last_token_end - node.pos;
     node.name = std::string_view(doc.doc_value).substr(node.pos, size);
 
@@ -413,7 +413,7 @@ bool parser::parse_type_reference()
     {
         current_node().nullability = nullability_t::Optional;
     }
-    
+
     current_node().parent->definition_type = &current_node();
     pop_node();
     return true;
@@ -633,6 +633,37 @@ bool parser::parse_enum_value()
 
 bool parser::parse_union_type_definition()
 {
+    if (!parse_keyword_token(syntax_node_type::UnionTypeDefinition, "union"))
+        return false;
+
+    if (!parse_name())
+        return false;
+
+    if (!parse_directives(false))
+        return false;
+
+    if (!expect_token(token_type::Equal))
+        return false;
+
+    if (current_token.of_type(token_type::Union))
+    {
+        if (!next_token())
+            return false;
+    }
+    do
+    {
+        if (!parse_named_type(NodeIsLeaf))
+        {
+            return false;
+        }
+
+        if (!expect_token(token_type::Union))
+            break;
+
+    } while (true);
+
+    pop_node();
+
     return true;
 }
 
@@ -643,7 +674,7 @@ bool parser::parse_interface_type_definition()
 
 bool parser::parse_object_type_definition()
 {
-    if (!parse_keyword_token(syntax_node_type::InputObjectTypeDefinition, "type"))
+    if (!parse_keyword_token(syntax_node_type::ObjectTypeDefinition, "type"))
         return false;
 
     if (!parse_name())
@@ -807,7 +838,10 @@ bool parser::parse_operation_type_definition()
 
 bool parser::parse_named_type(NodeParseOptions opts)
 {
-    return parse_node(syntax_node_type::NamedType, token_type::Name, opts);
+    if(!parse_node(syntax_node_type::NamedType, token_type::Name, opts))
+        return false;
+    last_node().name = last_node().content;
+    return true;
 }
 
 bool parser::parse_directive_definition()

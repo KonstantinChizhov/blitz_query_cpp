@@ -58,10 +58,10 @@ bool schema_parser::process_doc(schema &schema, const document &doc)
 
             break;
         case syntax_node_type::InterfaceTypeDefinition:
-
+            
             break;
         case syntax_node_type::UnionTypeDefinition:
-
+            result = process_union_type_def(schema, *definition);
             break;
 
         case syntax_node_type::InputObjectTypeExtension:
@@ -293,7 +293,7 @@ bool schema_parser::process_argument(argument_collection &arguments, const synta
     if (type_definition->nullability != nullability_t::Required)
         value.field_type_nullability |= (1 << value.list_nesting_depth);
 
-    value.field_type_name = type_definition->name;
+    value.field_type.name = type_definition->name;
 
     // handle default value
     if (arg_node.children.size() < 2u)
@@ -302,6 +302,43 @@ bool schema_parser::process_argument(argument_collection &arguments, const synta
     const syntax_node *default_value_node = arg_node.children[1];
     if (!process_parameter_value(value.default_value, *default_value_node))
         return false;
+
+    return true;
+}
+
+bool schema_parser::process_union_type_def(schema &schema, const syntax_node &definition)
+{
+    auto union_type = schema.create_type(type_kind::Union, definition.name);
+    if (!union_type)
+    {
+        return report_type_already_defined(definition.name);
+    }
+    union_type->description = definition.description;
+    union_type->kind = type_kind::Union;
+
+    if (!process_directives(*union_type, definition))
+        return false;
+
+    for (const syntax_node *union_member_def : definition.children)
+    {
+        if(union_member_def->type != syntax_node_type::NamedType)
+            continue;
+        if (!process_union_type(*union_type, *union_member_def))
+            return false;
+    }
+
+    return true;
+}
+
+bool schema_parser::process_union_type(object_type &union_type, const syntax_node &union_member_def)
+{
+    auto res = union_type.implements.try_emplace(std::string(union_member_def.name));
+    if (!res.second)
+    {
+        return report_error(union_member_def, "type with name {} already implemented by union {} ", union_member_def.name, union_member_def.parent->name);
+    }
+    type_reference &type_ref = res.first->second;
+    type_ref.name = union_member_def.name;
 
     return true;
 }
