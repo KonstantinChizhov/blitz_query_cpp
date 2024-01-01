@@ -11,28 +11,13 @@ namespace blitz_query_cpp
     class schema
     {
     public:
-        std::unordered_map<std::string, object_type> types;
-        std::unordered_map<std::string, directive_type> directives;
+        named_collection<object_type> types;
+        named_collection<directive_type> directives;
 
         std::string query_type_name;
         std::string mutation_type_name;
 
     public:
-        object_type* create_type(type_kind kind, std::string_view name)
-        {
-            if (name.size() < 1)
-            {
-                return nullptr;
-            }
-            auto res = types.try_emplace(std::string(name));
-            if (!res.second)
-            {
-                return nullptr;
-            }
-            object_type *obj = &res.first->second;
-            obj->kind = kind,
-            obj->name = name;
-            return obj;
-        }
+
     };
 }

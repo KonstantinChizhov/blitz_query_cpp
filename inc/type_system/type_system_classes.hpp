@@ -3,73 +3,104 @@
 #include <type_system/type_kind.hpp>
 #include <type_system/value_kind.hpp>
 #include <syntax/directive_target.hpp>
-#include <unordered_map>
+#include <unordered_set>
 #include <optional>
 #include <vector>
 #include <string_view>
 #include <string>
-
+#include <utility>
 
 namespace blitz_query_cpp
 {
-    struct type_system_object
+    struct name_hash
     {
-        type_kind kind;
-        std::string name;
-        std::string description;
-        bool is_deprecated;
-        std::string deprecation_reason;
+        using hash_type = std::hash<std::string_view>;
+        using is_transparent = void;
+
+        std::size_t operator()(const char *str) const noexcept { return hash_type{}(str); }
+        std::size_t operator()(std::string_view str) const noexcept { return hash_type{}(str); }
+        std::size_t operator()(std::string const &str) const noexcept { return hash_type{}(str); }
+        template <class T>
+        std::size_t operator()(const T &named_obj) const noexcept { return hash_type{}(named_obj.name); }
     };
 
-    using argument_collection = std::unordered_map<std::string, struct input_value>;
+    template <class T>
+    struct name_compare
+    {
+        using is_transparent = void;
+
+        bool operator()(const T &a, const std::string_view &name) const noexcept { return a.name == name; }
+        bool operator()(const std::string_view &name, const T &a) const noexcept { return a.name == name; }
+        bool operator()(const T &a, const T &b) const noexcept { return a.name == b.name; }
+    };
+
+    template <class T>
+    using named_collection = std::unordered_set<T, name_hash, name_compare<T>>;
+
+    struct type_system_object
+    {
+        type_system_object() = default;
+        type_system_object(std::string_view name_, std::string_view description_) : name{name_}, description{description_} {}
+
+        std::string name;
+        std::string description;
+    };
 
     struct directive_type : type_system_object
     {
-        static constexpr type_kind static_type_kind = type_kind::Directive;
-        directive_type() { kind = static_type_kind; }
+        using type_system_object::type_system_object;
+        directive_type(std::string_view name_, std::string_view description_, directive_target_t target_)
+            : type_system_object{name_, description_}, target{target_}
+        {
+        }
+
         directive_target_t target = directive_target_t::None;
-        argument_collection arguments;
+        named_collection<struct input_value> arguments;
     };
 
-    struct parameter_value
+    struct parameter_value : type_system_object
     {
-        value_kind value_type;
-        std::string name;
-        std::string description;
+        using type_system_object::type_system_object;
+
+        value_kind value_type = value_kind::None;
         std::string string_value;
         long long int_value = 0;
         double float_value = 0;
         bool bool_value = false;
-        std::vector<parameter_value> fields;
+        named_collection<parameter_value> fields;
     };
 
     struct directive
     {
+        directive() = default;
+        directive(std::string_view name_) : name{name_} {}
+
         std::string name;
-        directive_type *directive_type;
-        std::vector<parameter_value> parameters;
+        directive_type *directive_type = nullptr;
+        named_collection<parameter_value> parameters;
     };
 
     struct type_system_object_with_directives : type_system_object
     {
+        using type_system_object::type_system_object;
+        type_system_object_with_directives() = default;
         std::vector<directive> directives;
-
-        directive &add_directive(std::string_view name)
-        {
-            directive &item = directives.emplace_back();
-            item.name = name;
-            return item;
-        }
+        bool is_deprecated;
+        std::string deprecation_reason;
     };
 
     struct type_reference
     {
+        type_reference() = default;
+        type_reference(std::string_view name_) : name(name_) {}
         std::string name;
-        struct object_type *type;
+        struct object_type *type = nullptr;
     };
 
-    struct input_value: type_system_object_with_directives
+    struct input_value : type_system_object_with_directives
     {
+        using type_system_object_with_directives::type_system_object_with_directives;
+
         int index = 0;
         parameter_value default_value;
         type_reference declaring_type;
@@ -78,19 +109,28 @@ namespace blitz_query_cpp
         int list_nesting_depth = 0;
     };
 
-    struct field : type_system_object_with_directives
+    struct field : public type_system_object_with_directives
     {
+        field() = default;
+        using type_system_object_with_directives::type_system_object_with_directives;
+
         bool is_optional;
         int index;
         type_reference declaring_type;
         type_reference field_type;
-        argument_collection arguments;
+        named_collection<input_value> arguments;
     };
 
     struct object_type : type_system_object_with_directives
     {
-        std::unordered_map<std::string, field> fields;
-        std::unordered_map<std::string, type_reference> implements;
-    };
+        using type_system_object_with_directives::type_system_object_with_directives;
+        object_type(type_kind kind_, std::string_view name_, std::string_view description_)
+            : type_system_object_with_directives(name_, description_), kind(kind_)
+        {
+        }
 
+        type_kind kind;
+        named_collection<field> fields;
+        named_collection<type_reference> implements;
+    };
 }

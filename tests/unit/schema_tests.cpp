@@ -25,11 +25,11 @@ TEST(Schema, ParseScalarDef)
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
    ASSERT_EQ(my_schema.types.size(), 1u);
-   auto &type = my_schema.types.begin()->second;
+   auto &type = *my_schema.types.begin();
    EXPECT_EQ(type.description, "scalar description");
    EXPECT_EQ(type.kind, type_kind::Scalar);
    ASSERT_EQ(type.directives.size(), 1u);
-   EXPECT_EQ(type.directives[0].name, "specifiedBy");
+   EXPECT_EQ(type.directives[0].name, "@specifiedBy");
 }
 
 TEST(Schema, ParseEnumDef)
@@ -40,7 +40,7 @@ TEST(Schema, ParseEnumDef)
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
    ASSERT_EQ(my_schema.types.size(), 1u);
-   auto &type = my_schema.types.begin()->second;
+   auto &type = *my_schema.types.begin();
    EXPECT_EQ(type.directives.size(), 1u);
 
    EXPECT_EQ(type.description, "enum description");
@@ -59,28 +59,27 @@ TEST(Schema, ParseDirectiveDef)
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
    ASSERT_EQ(my_schema.directives.size(), 1u);
-   auto &type = my_schema.directives.begin()->second;
+   auto &type = *my_schema.directives.begin();
    EXPECT_EQ(type.description, "directive description");
    EXPECT_EQ(type.name, "@foo");
-   EXPECT_EQ(type.kind, type_kind::Directive);
    EXPECT_EQ(type.target, directive_target_t::Scalar | directive_target_t::Enum | directive_target_t::IsRepeatable);
 
-   ASSERT_EQ(type.arguments.size(), 2u);
+   EXPECT_EQ(type.arguments.size(), 2u);
    ASSERT_EQ(type.arguments.contains("param"), true);
    ASSERT_EQ(type.arguments.contains("foo"), true);
 
-   EXPECT_EQ(type.arguments["param"].field_type.name, "String");
-   EXPECT_EQ(type.arguments["param"].field_type_nullability, 0u);
-   EXPECT_EQ(type.arguments["param"].description, "param descr");
-   EXPECT_EQ(type.arguments["param"].default_value.value_type, value_kind::None);
+   auto param = *type.arguments.find("param");
+   EXPECT_EQ(param.field_type.name, "String");
+   EXPECT_EQ(param.field_type_nullability, 0u);
+   EXPECT_EQ(param.description, "param descr");
+   EXPECT_EQ(param.default_value.value_type, value_kind::None);
 
-   EXPECT_EQ(type.arguments["foo"].field_type.name, "Foo");
-   EXPECT_EQ(type.arguments["foo"].field_type_nullability, 1u);
-   EXPECT_EQ(type.arguments["foo"].description, "");
-   EXPECT_EQ(type.arguments["foo"].default_value.value_type, value_kind::Object);
-
+   auto foo = *type.arguments.find("foo");
+   EXPECT_EQ(foo.field_type.name, "Foo");
+   EXPECT_EQ(foo.field_type_nullability, 1u);
+   EXPECT_EQ(foo.description, "");
+   EXPECT_EQ(foo.default_value.value_type, value_kind::Object);
 }
-
 
 TEST(Schema, ParseUnionDef)
 {
@@ -90,7 +89,7 @@ TEST(Schema, ParseUnionDef)
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
 
-   auto &type = my_schema.types.begin()->second;
+   auto &type = *my_schema.types.begin();
    EXPECT_EQ(type.directives.size(), 1u);
 
    EXPECT_EQ(type.description, "union description");
@@ -98,5 +97,4 @@ TEST(Schema, ParseUnionDef)
    ASSERT_EQ(type.implements.size(), 2u);
    ASSERT_EQ(type.implements.contains("User"), true);
    ASSERT_EQ(type.implements.contains("Group"), true);
-
 }

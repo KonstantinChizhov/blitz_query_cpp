@@ -52,13 +52,10 @@ bool schema_parser::process_doc(schema &schema, const document &doc)
             result = process_enum_type_def(schema, *definition);
             break;
         case syntax_node_type::InputObjectTypeDefinition:
-
-            break;
-        case syntax_node_type::InputValueDefinition:
-
+            result = process_input_type_def(schema, *definition);
             break;
         case syntax_node_type::InterfaceTypeDefinition:
-            
+
             break;
         case syntax_node_type::UnionTypeDefinition:
             result = process_union_type_def(schema, *definition);
@@ -115,15 +112,15 @@ bool schema_parser::process_schema_def(schema &schema, const syntax_node &defini
 
 bool schema_parser::process_scalar_type_def(schema &schema, const syntax_node &definition)
 {
-    auto scalar = schema.create_type(type_kind::Scalar, definition.name);
-    if (!scalar)
+    object_type type{type_kind::Scalar, definition.name, definition.description};
+    if (!process_directives(type, definition))
+        return false;
+
+    if (!schema.types.insert(std::move(type)).second)
     {
         return report_type_already_defined(definition.name);
     }
 
-    scalar->description = definition.description;
-    if (!process_directives(*scalar, definition))
-        return false;
     return true;
 }
 
@@ -136,32 +133,31 @@ bool schema_parser::process_enum_value(object_type &enum_type, const syntax_node
         return true;
     }
 
-    auto field_res = enum_type.fields.try_emplace(std::string(enum_field_node.name));
-    if (!field_res.second)
+    field field{enum_field_node.name, enum_field_node.description};
+
+    if (!process_directives(field, enum_field_node))
+        return false;
+
+    if (!enum_type.fields.insert(std::move(field)).second)
         return report_filed_already_defined(enum_type.name, enum_field_node.name);
-    auto &field = field_res.first->second;
-    field.name = enum_field_node.name;
-    field.description = enum_field_node.description;
-    return process_directives(field, enum_field_node);
+
+    return true;
 }
 
 bool schema_parser::process_enum_type_def(schema &schema, const syntax_node &definition)
 {
-    auto enum_type = schema.create_type(type_kind::Enum, definition.name);
-    if (!enum_type)
-    {
-        return report_type_already_defined(definition.name);
-    }
-    enum_type->description = definition.description;
-    enum_type->kind = type_kind::Enum;
+    object_type enum_type{type_kind::Enum, definition.name, definition.description};
 
-    if (!process_directives(*enum_type, definition))
+    if (!process_directives(enum_type, definition))
         return false;
     for (const syntax_node *child_node : definition.children)
     {
-        if (!process_enum_value(*enum_type, *child_node))
+        if (!process_enum_value(enum_type, *child_node))
             return false;
     }
+
+    if (!schema.types.insert(std::move(enum_type)).second)
+        return report_type_already_defined(definition.name);
 
     return true;
 }
@@ -206,13 +202,11 @@ bool schema_parser::process_parameter_value(parameter_value &param, const syntax
     return false;
 }
 
-bool schema_parser::process_params(std::vector<parameter_value> &arguments, const syntax_node &node)
+bool schema_parser::process_params(named_collection<parameter_value> &arguments, const syntax_node &node)
 {
     for (const syntax_node *child_node : node.children)
     {
-        parameter_value &param = arguments.emplace_back();
-        param.name = child_node->name;
-        param.description = child_node->description;
+        parameter_value param{child_node->name, child_node->description};
 
         if (child_node->children.size() < 1)
             return false;
@@ -220,6 +214,9 @@ bool schema_parser::process_params(std::vector<parameter_value> &arguments, cons
 
         if (!process_parameter_value(param, *value_node))
             return false;
+
+        if (!arguments.insert(param).second)
+            return report_error(*child_node, "parameter with name '{}' already defined", child_node->name);
     }
     return true;
 }
@@ -228,51 +225,38 @@ bool schema_parser::process_directives(type_system_object_with_directives &type,
 {
     for (const syntax_node *directive_node : definition.directives)
     {
-        directive &dir = type.add_directive(directive_node->name.substr(1));
-
-        // dir.directive_type will be resolved lated on schema processing
+        directive dir{directive_node->name};
 
         if (!process_params(dir.parameters, *directive_node))
             return false;
+
+        type.directives.push_back(std::move(dir));
     }
     return true;
 }
 
 bool schema_parser::process_directive_type_def(schema &schema, const syntax_node &definition)
 {
-    auto res = schema.directives.try_emplace(std::string(definition.name));
-    if (!res.second)
-    {
-        return report_error("directive with name {} already defined", definition.name);
-    }
-
-    directive_type &dir = res.first->second;
-    dir.kind = type_kind::Directive,
-    dir.name = definition.name;
-    dir.description = definition.description;
-    dir.target = definition.directive_target;
+    directive_type dir{definition.name, definition.description, definition.directive_target};
 
     for (const syntax_node *child_node : definition.arguments)
     {
-        if (!process_argument(dir.arguments, *child_node))
+        if (!process_arguments(dir.arguments, *child_node))
             return false;
     }
+
+    if (!schema.directives.insert(dir).second)
+        return report_error("directive with name {} already defined", definition.name);
 
     return true;
 }
 
-bool schema_parser::process_argument(argument_collection &arguments, const syntax_node &arg_node)
+bool schema_parser::process_arguments(named_collection<input_value> &arguments, const syntax_node &arg_node)
 {
-    auto res = arguments.try_emplace(std::string(arg_node.name));
-    if (!res.second)
-    {
-        return report_error("argument with name {} already specified", arg_node.name);
-    }
-    input_value &value = res.first->second;
-    value.name = arg_node.name;
-    value.description = arg_node.description;
     if (!arg_node.definition_type)
         return report_error("argument type is not defined for {} at {}", arg_node.name, arg_node.pos);
+
+    input_value value{arg_node.name, arg_node.description};
 
     const syntax_node *type_definition = arg_node.definition_type;
     while (type_definition && type_definition->type == syntax_node_type::ListType)
@@ -296,49 +280,87 @@ bool schema_parser::process_argument(argument_collection &arguments, const synta
     value.field_type.name = type_definition->name;
 
     // handle default value
-    if (arg_node.children.size() < 2u)
-        return true;
+    if (arg_node.children.size() > 1u)
+    {
+        const syntax_node *default_value_node = arg_node.children[1];
+        if (!process_parameter_value(value.default_value, *default_value_node))
+            return false;
+    }
 
-    const syntax_node *default_value_node = arg_node.children[1];
-    if (!process_parameter_value(value.default_value, *default_value_node))
-        return false;
+    if (!arguments.insert(std::move(value)).second)
+        return report_error("argument with name {} already specified", arg_node.name);
 
     return true;
 }
 
 bool schema_parser::process_union_type_def(schema &schema, const syntax_node &definition)
 {
-    auto union_type = schema.create_type(type_kind::Union, definition.name);
-    if (!union_type)
-    {
-        return report_type_already_defined(definition.name);
-    }
-    union_type->description = definition.description;
-    union_type->kind = type_kind::Union;
+    object_type union_type{std::string(definition.name), std::string(definition.description)};
+    union_type.kind = type_kind::Union;
 
-    if (!process_directives(*union_type, definition))
+    if (!process_directives(union_type, definition))
         return false;
 
     for (const syntax_node *union_member_def : definition.children)
     {
-        if(union_member_def->type != syntax_node_type::NamedType)
+        if (union_member_def->type != syntax_node_type::NamedType)
             continue;
-        if (!process_union_type(*union_type, *union_member_def))
+        if (!process_union_type(union_type, *union_member_def))
             return false;
     }
+
+    if (!schema.types.insert(std::move(union_type)).second)
+        return report_type_already_defined(definition.name);
 
     return true;
 }
 
 bool schema_parser::process_union_type(object_type &union_type, const syntax_node &union_member_def)
 {
-    auto res = union_type.implements.try_emplace(std::string(union_member_def.name));
+    auto res = union_type.implements.emplace(union_member_def.name);
     if (!res.second)
     {
         return report_error(union_member_def, "type with name {} already implemented by union {} ", union_member_def.name, union_member_def.parent->name);
     }
-    type_reference &type_ref = res.first->second;
-    type_ref.name = union_member_def.name;
+
+    return true;
+}
+
+bool schema_parser::process_input_type_def(schema &schema, const syntax_node &definition)
+{
+    object_type input_type{type_kind::InputObject, std::string(definition.name), std::string(definition.description)};
+
+    if (!process_directives(input_type, definition))
+        return false;
+
+    for (const syntax_node *child_node : definition.children)
+    {
+        if (!process_input_value(input_type, *child_node))
+            return false;
+    }
+
+    if (!schema.types.insert(std::move(input_type)).second)
+        return report_type_already_defined(definition.name);
+
+    return true;
+}
+
+bool schema_parser::process_input_value(object_type &type, const syntax_node &field_node)
+{
+    if (field_node.type != syntax_node_type::InputValueDefinition)
+    {
+        if (field_node.type != syntax_node_type::Directive)
+            return report_error(field_node, "unexpected node type: {} in input type '{}' at {}", enum_name(field_node.type), type.name);
+        return true;
+    }
+
+    field field{field_node.name, field_node.description};
+
+    if (!process_directives(field, field_node))
+        return false;
+
+    if (!type.fields.insert(std::move(field)).second)
+        return report_filed_already_defined(type.name, field_node.name);
 
     return true;
 }
