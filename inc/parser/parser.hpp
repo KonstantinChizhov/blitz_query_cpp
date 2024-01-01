@@ -74,7 +74,7 @@ namespace blitz_query_cpp
         [[nodiscard]] bool expect_keyword_token(std::string_view keyword, bool optional = false);
         [[nodiscard]] bool expect_token(token_type expected_types);
         [[nodiscard]] bool next_token();
-        [[nodiscard]] bool parse_argument_definitions();
+        [[nodiscard]] bool parse_argument_definitions(token_type start = token_type::LParen, token_type end = token_type::RParen);
         [[nodiscard]] bool parse_argument_definition();
         [[nodiscard]] bool parse_arguments(bool is_constant);
         [[nodiscard]] bool parse_definitions();

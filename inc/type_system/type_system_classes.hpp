@@ -37,6 +37,18 @@ namespace blitz_query_cpp
     template <class T>
     using named_collection = std::unordered_set<T, name_hash, name_compare<T>>;
 
+    template <class T, class It, class F>
+    void modify(named_collection<T> &s, It it, F f)
+    {
+        if(it == s.end())
+            return;
+        auto node = s.extract(it);
+        if (node.empty())
+            return;
+        f(node.value());
+        s.insert(std::move(node));
+    }
+
     struct type_system_object
     {
         type_system_object() = default;
@@ -102,6 +114,7 @@ namespace blitz_query_cpp
         using type_system_object_with_directives::type_system_object_with_directives;
 
         int index = 0;
+        bool is_optional;
         parameter_value default_value;
         type_reference declaring_type;
         type_reference field_type;
@@ -109,15 +122,11 @@ namespace blitz_query_cpp
         int list_nesting_depth = 0;
     };
 
-    struct field : public type_system_object_with_directives
+    struct field : public input_value
     {
         field() = default;
-        using type_system_object_with_directives::type_system_object_with_directives;
-
-        bool is_optional;
-        int index;
-        type_reference declaring_type;
-        type_reference field_type;
+        using input_value::input_value;
+        
         named_collection<input_value> arguments;
     };
 

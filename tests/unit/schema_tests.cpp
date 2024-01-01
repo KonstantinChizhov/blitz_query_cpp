@@ -98,3 +98,36 @@ TEST(Schema, ParseUnionDef)
    ASSERT_EQ(type.implements.contains("User"), true);
    ASSERT_EQ(type.implements.contains("Group"), true);
 }
+
+TEST(Schema, ParseInputDef)
+{
+   std::string scm = "\"input description\" input fileInput @foo { \"file is deleted\" deleted: Boolean! = true @bar name: String Id: UUID }";
+   schema my_schema;
+   schema_parser parser;
+   bool res = parser.parse(my_schema, scm);
+   ASSERT_EQ(res, true);
+
+   auto &type = *my_schema.types.begin();
+   EXPECT_EQ(type.directives.size(), 1u);
+   EXPECT_EQ(type.directives[0].name, "@foo");
+
+   EXPECT_EQ(type.description, "input description");
+   EXPECT_EQ(type.kind, type_kind::InputObject);
+   EXPECT_EQ(type.fields.size(), 3u);
+   ASSERT_EQ(type.fields.contains("deleted"), true);
+   ASSERT_EQ(type.fields.contains("name"), true);
+   ASSERT_EQ(type.fields.contains("Id"), true);
+
+   auto deleted = *type.fields.find("deleted");
+   EXPECT_EQ(deleted.description, "file is deleted");
+   EXPECT_EQ(deleted.declaring_type.name, "fileInput");
+   EXPECT_EQ(deleted.field_type.name, "Boolean");
+   EXPECT_EQ(deleted.field_type_nullability, 0u);
+   EXPECT_EQ(deleted.list_nesting_depth, 0);
+   EXPECT_EQ(deleted.default_value.value_type, value_kind::Boolean);
+   EXPECT_EQ(deleted.default_value.bool_value, true);
+   EXPECT_EQ(deleted.directives.size(), 1u);
+   EXPECT_EQ(deleted.directives[0].name, "@bar");
+   EXPECT_EQ(deleted.index, 0);
+
+}

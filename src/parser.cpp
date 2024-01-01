@@ -570,13 +570,7 @@ bool parser::parse_input_object_type_definition()
     if (!parse_directives(false))
         return false;
 
-    if (!expect_token(token_type::LBrace))
-        return false;
-
-    if (!parse_argument_definitions())
-        return false;
-
-    if (!expect_token(token_type::RBrace))
+    if (!parse_argument_definitions(token_type::LBrace, token_type::RBrace))
         return false;
 
     pop_node();
@@ -714,16 +708,16 @@ bool parser::parse_implements_interfaces()
     return false;
 }
 
-bool parser::parse_argument_definitions()
+bool parser::parse_argument_definitions(token_type start, token_type end)
 {
     size_t child_count = current_node().children.size();
-    if (!current_token.of_type(token_type::LParen))
+    if (!current_token.of_type(start))
         return true;
 
     if (!next_token())
         return false;
 
-    while (!current_token.of_type(token_type::RParen))
+    while (!current_token.of_type(end))
     {
         if (!parse_argument_definition())
         {
@@ -732,7 +726,7 @@ bool parser::parse_argument_definitions()
     }
     auto &node = current_node();
     node.arguments = node.children.subspan(child_count);
-    return expect_token(token_type::RParen);
+    return expect_token(end);
 }
 
 bool parser::parse_argument_definition()

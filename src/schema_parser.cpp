@@ -239,11 +239,8 @@ bool schema_parser::process_directive_type_def(schema &schema, const syntax_node
 {
     directive_type dir{definition.name, definition.description, definition.directive_target};
 
-    for (const syntax_node *child_node : definition.arguments)
-    {
-        if (!process_arguments(dir.arguments, *child_node))
-            return false;
-    }
+    if (!process_arguments(dir.arguments, definition))
+        return false;
 
     if (!schema.directives.insert(dir).second)
         return report_error("directive with name {} already defined", definition.name);
@@ -251,14 +248,28 @@ bool schema_parser::process_directive_type_def(schema &schema, const syntax_node
     return true;
 }
 
-bool schema_parser::process_arguments(named_collection<input_value> &arguments, const syntax_node &arg_node)
+bool schema_parser::process_arguments(named_collection<input_value> &arguments, const syntax_node &node)
 {
-    if (!arg_node.definition_type)
-        return report_error("argument type is not defined for {} at {}", arg_node.name, arg_node.pos);
+    for (const syntax_node *child_node : node.arguments)
+    {
+        if (!child_node->definition_type)
+            return report_error(*child_node, "argument type is not defined for {} at {}", child_node->name);
 
-    input_value value{arg_node.name, arg_node.description};
+        input_value value{child_node->name, child_node->description};
+        value.index = arguments.size();
 
-    const syntax_node *type_definition = arg_node.definition_type;
+        if (!process_input_value(value, *child_node))
+            return true;
+
+        if (!arguments.insert(std::move(value)).second)
+            return report_error(*child_node, "argument with name {} already specified", child_node->name);
+    }
+    return true;
+}
+
+bool blitz_query_cpp::schema_parser::process_input_value(input_value &value, const blitz_query_cpp::syntax_node &node)
+{
+    const syntax_node *type_definition = node.definition_type;
     while (type_definition && type_definition->type == syntax_node_type::ListType)
     {
         if (type_definition->nullability != nullability_t::Required)
@@ -280,15 +291,15 @@ bool schema_parser::process_arguments(named_collection<input_value> &arguments, 
     value.field_type.name = type_definition->name;
 
     // handle default value
-    if (arg_node.children.size() > 1u)
+    if (node.children.size() > 1u)
     {
-        const syntax_node *default_value_node = arg_node.children[1];
+        const syntax_node *default_value_node = node.children[1];
         if (!process_parameter_value(value.default_value, *default_value_node))
             return false;
     }
 
-    if (!arguments.insert(std::move(value)).second)
-        return report_error("argument with name {} already specified", arg_node.name);
+    if (!process_directives(value, node))
+        return false;
 
     return true;
 }
@@ -335,7 +346,7 @@ bool schema_parser::process_input_type_def(schema &schema, const syntax_node &de
 
     for (const syntax_node *child_node : definition.children)
     {
-        if (!process_input_value(input_type, *child_node))
+        if (!process_input_field(input_type, *child_node))
             return false;
     }
 
@@ -345,7 +356,7 @@ bool schema_parser::process_input_type_def(schema &schema, const syntax_node &de
     return true;
 }
 
-bool schema_parser::process_input_value(object_type &type, const syntax_node &field_node)
+bool schema_parser::process_input_field(object_type &type, const syntax_node &field_node)
 {
     if (field_node.type != syntax_node_type::InputValueDefinition)
     {
@@ -356,8 +367,10 @@ bool schema_parser::process_input_value(object_type &type, const syntax_node &fi
 
     field field{field_node.name, field_node.description};
 
-    if (!process_directives(field, field_node))
+    if (!process_input_value(field, field_node))
         return false;
+    field.index = type.fields.size();
+    field.declaring_type.name = type.name;
 
     if (!type.fields.insert(std::move(field)).second)
         return report_filed_already_defined(type.name, field_node.name);
