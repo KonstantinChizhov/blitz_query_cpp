@@ -149,9 +149,9 @@ bool parser::parse_definitions()
         case "scalar"_crc32:
             return parse_scalar_type_definition();
         case "type"_crc32:
-            return parse_object_type_definition();
+            return parse_object_type_definition(syntax_node_type::ObjectTypeDefinition, "type");
         case "interface"_crc32:
-            return parse_interface_type_definition();
+            return parse_object_type_definition(syntax_node_type::ObjectTypeDefinition, "interface");
         case "union"_crc32:
             return parse_union_type_definition();
         case "enum"_crc32:
@@ -663,14 +663,9 @@ bool parser::parse_union_type_definition()
     return true;
 }
 
-bool parser::parse_interface_type_definition()
+bool parser::parse_object_type_definition(syntax_node_type type, std::string_view keyword)
 {
-    return true;
-}
-
-bool parser::parse_object_type_definition()
-{
-    if (!parse_keyword_token(syntax_node_type::ObjectTypeDefinition, "type"))
+    if (!parse_keyword_token(type, keyword))
         return false;
 
     if (!parse_name())

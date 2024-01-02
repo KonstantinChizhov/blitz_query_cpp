@@ -90,13 +90,12 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_fragment();
         [[nodiscard]] bool parse_implements_interfaces();
         [[nodiscard]] bool parse_input_object_type_definition();
-        [[nodiscard]] bool parse_interface_type_definition();
         [[nodiscard]] bool parse_keyword_token(syntax_node_type type, std::string_view keyword);
         [[nodiscard]] bool parse_list(bool is_constant);
         [[nodiscard]] bool parse_name(token_type name_type = token_type::Name);
         [[nodiscard]] bool parse_named_type(NodeParseOptions opts = NodeParseDefault);
         [[nodiscard]] bool parse_node(syntax_node_type type, token_type expected_types, NodeParseOptions opts = NodeParseDefault);
-        [[nodiscard]] bool parse_object_type_definition();
+        [[nodiscard]] bool parse_object_type_definition(syntax_node_type type, std::string_view keyword);
         [[nodiscard]] bool parse_object(bool is_constant);
         [[nodiscard]] bool parse_operation_definition();
         [[nodiscard]] bool parse_operation_type_definition();

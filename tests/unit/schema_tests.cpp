@@ -4,6 +4,10 @@
 #include <type_system/schema.hpp>
 #include <type_system/schema_parser.hpp>
 
+#include <filesystem>
+#include <fstream>
+#include <string>
+
 using namespace blitz_query_cpp;
 
 TEST(Schema, ParseSchemaDef)
@@ -163,4 +167,59 @@ TEST(Schema, ParseTypeDef)
    EXPECT_EQ(file.directives[0].name, "@bar");
    EXPECT_EQ(file.index, 0);
    EXPECT_EQ(file.is_optional(), true);
+}
+
+TEST(Schema, ParseInterfaceDef)
+{
+   std::string scm = "\"interface descr\" interface FileSystem @foo(bar:\"baz\") { \"file descr\" file(skip: Int take: Int where: fileFilterInput order: [fileSortInput!]): fileCollectionSegment @bar }";
+   schema my_schema;
+   schema_parser parser;
+   bool res = parser.parse(my_schema, scm);
+   EXPECT_EQ(parser.get_error_msg(), "");
+   ASSERT_EQ(res, true);
+   
+
+   auto &type = *my_schema.types.begin();
+   EXPECT_EQ(type.directives.size(), 1u);
+   EXPECT_EQ(type.directives[0].name, "@foo");
+   EXPECT_EQ(type.directives[0].parameters.contains("bar"), true);
+
+   EXPECT_EQ(type.description, "interface descr");
+   EXPECT_EQ(type.kind, type_kind::Object);
+   EXPECT_EQ(type.fields.size(), 1u);
+   ASSERT_EQ(type.fields.contains("file"), true);
+
+   auto file = *type.fields.find("file");
+   EXPECT_EQ(file.description, "file descr");
+   EXPECT_EQ(file.declaring_type.name, "FileSystem");
+   EXPECT_EQ(file.field_type.name, "fileCollectionSegment");
+   EXPECT_EQ(file.field_type_nullability, 1u);
+   EXPECT_EQ(file.list_nesting_depth, 0);
+   EXPECT_EQ(file.directives.size(), 1u);
+   EXPECT_EQ(file.directives[0].name, "@bar");
+   EXPECT_EQ(file.index, 0);
+   EXPECT_EQ(file.is_optional(), true);
+}
+
+
+namespace fs = std::filesystem;
+
+std::string readFile(fs::path path)
+{
+    std::ifstream f(path, std::ios::in | std::ios::binary);
+    const auto sz = fs::file_size(path);
+    std::string result(sz, '\0');
+    f.read(result.data(), sz);
+    return result;
+}
+
+
+TEST(Schema, LoadSchema)
+{
+   std::string scm = readFile("test_data/schema.graphql");
+   schema my_schema;
+   schema_parser parser;
+   bool res = parser.parse(my_schema, scm);
+   EXPECT_EQ(parser.get_error_msg(), "");
+   ASSERT_EQ(res, true);
 }
