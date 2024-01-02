@@ -20,7 +20,7 @@ bool schema_parser::parse(schema &schema, std::string_view schema_string)
     parser parser{doc};
     if (!parser.parse())
     {
-        return false;
+        return report_error("syntax error: {}", parser.get_error_msg());
     }
     if (!process_doc(schema, doc))
     {
@@ -46,7 +46,7 @@ bool schema_parser::process_doc(schema &schema, const document &doc)
             result = process_directive_type_def(schema, *definition);
             break;
         case syntax_node_type::ObjectTypeDefinition:
-
+            result = process_output_type_def(schema, *definition);
             break;
         case syntax_node_type::EnumTypeDefinition:
             result = process_enum_type_def(schema, *definition);
@@ -267,7 +267,7 @@ bool schema_parser::process_arguments(named_collection<input_value> &arguments, 
     return true;
 }
 
-bool blitz_query_cpp::schema_parser::process_input_value(input_value &value, const blitz_query_cpp::syntax_node &node)
+bool schema_parser::process_filed_type(input_value &value, const syntax_node &node)
 {
     const syntax_node *type_definition = node.definition_type;
     while (type_definition && type_definition->type == syntax_node_type::ListType)
@@ -289,7 +289,13 @@ bool blitz_query_cpp::schema_parser::process_input_value(input_value &value, con
         value.field_type_nullability |= (1 << value.list_nesting_depth);
 
     value.field_type.name = type_definition->name;
+    return true;
+}
 
+bool schema_parser::process_input_value(input_value &value, const syntax_node &node)
+{
+    if (!process_filed_type(value, node))
+        return false;
     // handle default value
     if (node.children.size() > 1u)
     {
@@ -312,11 +318,9 @@ bool schema_parser::process_union_type_def(schema &schema, const syntax_node &de
     if (!process_directives(union_type, definition))
         return false;
 
-    for (const syntax_node *union_member_def : definition.children)
+    for (const syntax_node *union_member_def : definition.implements)
     {
-        if (union_member_def->type != syntax_node_type::NamedType)
-            continue;
-        if (!process_union_type(union_type, *union_member_def))
+        if (!process_implemented_type(union_type, *union_member_def))
             return false;
     }
 
@@ -326,12 +330,12 @@ bool schema_parser::process_union_type_def(schema &schema, const syntax_node &de
     return true;
 }
 
-bool schema_parser::process_union_type(object_type &union_type, const syntax_node &union_member_def)
+bool schema_parser::process_implemented_type(object_type &type, const syntax_node &member_def)
 {
-    auto res = union_type.implements.emplace(union_member_def.name);
+    auto res = type.implements.emplace(member_def.name);
     if (!res.second)
     {
-        return report_error(union_member_def, "type with name {} already implemented by union {} ", union_member_def.name, union_member_def.parent->name);
+        return report_error(member_def, "type with name {} already implemented by type {} ", member_def.name, type.name);
     }
 
     return true;
@@ -369,6 +373,60 @@ bool schema_parser::process_input_field(object_type &type, const syntax_node &fi
 
     if (!process_input_value(field, field_node))
         return false;
+    field.index = type.fields.size();
+    field.declaring_type.name = type.name;
+
+    if (!type.fields.insert(std::move(field)).second)
+        return report_filed_already_defined(type.name, field_node.name);
+
+    return true;
+}
+
+bool schema_parser::process_output_type_def(schema &schema, const syntax_node &definition)
+{
+    object_type output_type{type_kind::Object, std::string(definition.name), std::string(definition.description)};
+
+    if (!process_directives(output_type, definition))
+        return false;
+
+    for (const syntax_node *interface : definition.implements)
+    {
+        if (!process_implemented_type(output_type, *interface))
+            return false;
+    }
+
+    for (const syntax_node *child_node : definition.children)
+    {
+        if (!process_output_field(output_type, *child_node))
+            return false;
+    }
+
+    if (!schema.types.insert(std::move(output_type)).second)
+        return report_type_already_defined(definition.name);
+
+    return true;
+}
+
+bool schema_parser::process_output_field(object_type &type, const syntax_node &field_node)
+{
+    if (field_node.type != syntax_node_type::FieldDefinition)
+    {
+        if (!has_any_flag(field_node.type, syntax_node_type::Directive | syntax_node_type::NamedType))
+            return report_error(field_node, "unexpected node type: {} in type type '{}'", enum_name(field_node.type), type.name);
+        return true;
+    }
+
+    field field{field_node.name, field_node.description};
+
+    if (!process_filed_type(field, field_node))
+        return false;
+
+    if (!process_directives(field, field_node))
+        return false;
+
+    if (!process_arguments(field.arguments, field_node))
+        return false;
+
     field.index = type.fields.size();
     field.declaring_type.name = type.name;
 

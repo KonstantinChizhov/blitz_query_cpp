@@ -47,6 +47,8 @@ namespace blitz_query_cpp
             return "FragmentSpread";
         case token_type::Directive:
             return "Directive";
+        case token_type::And:
+            return "And";
         case token_type::End:
             return "End";
         case token_type::Comment:

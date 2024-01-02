@@ -129,5 +129,38 @@ TEST(Schema, ParseInputDef)
    EXPECT_EQ(deleted.directives.size(), 1u);
    EXPECT_EQ(deleted.directives[0].name, "@bar");
    EXPECT_EQ(deleted.index, 0);
+   EXPECT_EQ(deleted.is_optional(), true);
+}
 
+
+TEST(Schema, ParseTypeDef)
+{
+   std::string scm = "\"files descr\" type Files implements FileSystem @foo(bar:\"baz\") { \"file descr\" file(skip: Int take: Int where: fileFilterInput order: [fileSortInput!]): fileCollectionSegment @bar }";
+   schema my_schema;
+   schema_parser parser;
+   bool res = parser.parse(my_schema, scm);
+   EXPECT_EQ(parser.get_error_msg(), "");
+   ASSERT_EQ(res, true);
+   
+
+   auto &type = *my_schema.types.begin();
+   EXPECT_EQ(type.directives.size(), 1u);
+   EXPECT_EQ(type.directives[0].name, "@foo");
+   EXPECT_EQ(type.directives[0].parameters.contains("bar"), true);
+
+   EXPECT_EQ(type.description, "files descr");
+   EXPECT_EQ(type.kind, type_kind::Object);
+   EXPECT_EQ(type.fields.size(), 1u);
+   ASSERT_EQ(type.fields.contains("file"), true);
+
+   auto file = *type.fields.find("file");
+   EXPECT_EQ(file.description, "file descr");
+   EXPECT_EQ(file.declaring_type.name, "Files");
+   EXPECT_EQ(file.field_type.name, "fileCollectionSegment");
+   EXPECT_EQ(file.field_type_nullability, 1u);
+   EXPECT_EQ(file.list_nesting_depth, 0);
+   EXPECT_EQ(file.directives.size(), 1u);
+   EXPECT_EQ(file.directives[0].name, "@bar");
+   EXPECT_EQ(file.index, 0);
+   EXPECT_EQ(file.is_optional(), true);
 }

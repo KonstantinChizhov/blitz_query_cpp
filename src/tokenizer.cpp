@@ -67,6 +67,8 @@ token tokenizer_t::next_token()
         return read_name(1, token_type::Directive);
     case '"':
         return read_string();
+    case '&':
+        return single_char_token(token_type::And);
     default:
         if (std::isdigit(ch) || ch == '-' || ch == '+')
         {

@@ -25,11 +25,12 @@ namespace blitz_query_cpp
         FloatLiteral = (1 << 14),     // 3.14
         ParameterLiteral = (1 << 15), // $id
         MemberAccess = (1 << 16),     // foo.bar
-        FragmentSpread = (1 << 17),  // ...
+        FragmentSpread = (1 << 17),   // ...
         Directive = (1 << 18),        // @include | @skip
-        End = (1 << 19),              // end of dodument
-        Comment = (1 << 20),          // #comment<newline>
-        InvalidToken = (1 << 21),     // Error indicator
+        And = (1 << 19),              // &
+        End = (1 << 20),              // end of dodument
+        Comment = (1 << 21),          // #comment<newline>
+        InvalidToken = (1 << 22),     // Error indicator
     };
 
     DECLARE_ENUM_OPERATIONS(token_type)

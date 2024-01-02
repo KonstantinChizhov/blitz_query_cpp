@@ -30,15 +30,17 @@ namespace blitz_query_cpp
 
         bool process_enum_value(object_type &enum_type, const syntax_node &enum_field_node);
         bool process_input_field(object_type &input_type, const syntax_node &input_field_node);
-        bool process_union_type(object_type &union_type, const syntax_node &union_member_def);
+        bool process_implemented_type(object_type &type, const syntax_node &member_def);
+        bool process_output_field(object_type &type, const syntax_node &field_node);
 
         bool process_input_value(input_value &value, const syntax_node &node);
+        bool process_filed_type(input_value &value, const syntax_node &node);
         bool process_arguments(named_collection<input_value> &arguments, const syntax_node &enum_field_node);
         bool process_parameter_value(parameter_value &param, const syntax_node &value_node);
         bool process_params(named_collection<parameter_value> &arguments, const syntax_node &node);
 
     public:
-        std::string get_error_msg() const { return error_msg; }
+        std::string_view get_error_msg() const { return error_msg; }
 
         bool parse(schema &schema, std::string_view schema_string);
         bool process_doc(schema &schema, const document &doc);
@@ -49,6 +51,6 @@ namespace blitz_query_cpp
         bool process_directive_type_def(schema & schema, const syntax_node &definition);
         bool process_union_type_def(schema &schema, const syntax_node &definition);
         bool process_input_type_def(schema &schema, const syntax_node &definition);
-        
+        bool process_output_type_def(schema &schema, const syntax_node &definition);
     };
 }

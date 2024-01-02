@@ -47,6 +47,7 @@ namespace blitz_query_cpp
         {
             node_span arguments = node_span();
             node_span variables;
+            node_span implements;
         };
         union
         {

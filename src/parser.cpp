@@ -65,12 +65,11 @@ bool parser::parse_keyword_token(syntax_node_type type, std::string_view keyword
 {
     if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
     {
-        report_error(error_code_t::UnexpectedToken,
-                     "Expected keyword {} got: {} at {}",
-                     keyword,
-                     current_token.value,
-                     current_token.pos);
-        return false;
+        return report_error(error_code_t::UnexpectedToken,
+                            "Expected keyword {} got: {} at {}",
+                            keyword,
+                            current_token.value,
+                            current_token.pos);
     }
     return parse_node(type, token_type::Name);
 }
@@ -79,13 +78,13 @@ bool parser::expect_keyword_token(std::string_view keyword, bool optional)
 {
     if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
     {
-        if (!optional)
-            report_error(error_code_t::UnexpectedToken,
-                         "Expected keyword '{}' got: '{}' at {}",
-                         keyword,
-                         current_token.value,
-                         current_token.pos);
-        return false;
+        if (optional)
+            return false;
+        return report_error(error_code_t::UnexpectedToken,
+                            "Expected keyword '{}' got: '{}' at {}",
+                            keyword,
+                            current_token.value,
+                            current_token.pos);
     }
     return next_token();
 }
@@ -644,6 +643,7 @@ bool parser::parse_union_type_definition()
         if (!next_token())
             return false;
     }
+    size_t child_count = current_node().children.size();
     do
     {
         if (!parse_named_type(NodeIsLeaf))
@@ -655,6 +655,8 @@ bool parser::parse_union_type_definition()
             break;
 
     } while (true);
+    auto &node = current_node();
+    node.implements = node.children.subspan(child_count);
 
     pop_node();
 
@@ -685,6 +687,8 @@ bool parser::parse_object_type_definition()
 
     while (!current_token.of_type(token_type::RBrace))
     {
+        if(!parse_description())
+            return false;
         if (!create_new_node(syntax_node_type::FieldDefinition, false))
             return false;
         if (!parse_name())
@@ -705,7 +709,31 @@ bool parser::parse_object_type_definition()
 
 bool parser::parse_implements_interfaces()
 {
-    return false;
+    if (!expect_keyword_token("implements", true))
+        return true;
+
+    if (current_token.of_type(token_type::And))
+    {
+        if (!next_token())
+            return false;
+    }
+    size_t child_count = current_node().children.size();
+
+    while (current_token.of_type(token_type::Name))
+    {
+        if (!parse_named_type(NodeIsLeaf))
+            return false;
+
+        if (current_token.of_type(token_type::And))
+        {
+            if (!next_token())
+                return false;
+        }
+    }
+    auto &node = current_node();
+    node.implements = node.children.subspan(child_count);
+
+    return true;
 }
 
 bool parser::parse_argument_definitions(token_type start, token_type end)
@@ -832,7 +860,7 @@ bool parser::parse_operation_type_definition()
 
 bool parser::parse_named_type(NodeParseOptions opts)
 {
-    if(!parse_node(syntax_node_type::NamedType, token_type::Name, opts))
+    if (!parse_node(syntax_node_type::NamedType, token_type::Name, opts))
         return false;
     last_node().name = last_node().content;
     return true;

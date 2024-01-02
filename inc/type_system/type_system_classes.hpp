@@ -40,7 +40,7 @@ namespace blitz_query_cpp
     template <class T, class It, class F>
     void modify(named_collection<T> &s, It it, F f)
     {
-        if(it == s.end())
+        if (it == s.end())
             return;
         auto node = s.extract(it);
         if (node.empty())
@@ -97,7 +97,7 @@ namespace blitz_query_cpp
         using type_system_object::type_system_object;
         type_system_object_with_directives() = default;
         std::vector<directive> directives;
-        bool is_deprecated;
+        bool is_deprecated = false;
         std::string deprecation_reason;
     };
 
@@ -114,7 +114,10 @@ namespace blitz_query_cpp
         using type_system_object_with_directives::type_system_object_with_directives;
 
         int index = 0;
-        bool is_optional;
+        bool is_optional()
+        {
+            return (field_type_nullability & (1 << list_nesting_depth)) != 0 || (default_value.value_type != value_kind::None && default_value.value_type != value_kind::Null);
+        }
         parameter_value default_value;
         type_reference declaring_type;
         type_reference field_type;
@@ -126,7 +129,7 @@ namespace blitz_query_cpp
     {
         field() = default;
         using input_value::input_value;
-        
+
         named_collection<input_value> arguments;
     };
 

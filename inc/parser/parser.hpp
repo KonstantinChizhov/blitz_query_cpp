@@ -40,7 +40,7 @@ namespace blitz_query_cpp
             (void)next_token();
         }
 
-        std::string get_error_msg() const { return error_msg; }
+        std::string_view get_error_msg() const { return error_msg; }
         error_code_t get_error_code() const { return error_code; }
 
         [[nodiscard]] bool parse();
