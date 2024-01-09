@@ -108,6 +108,26 @@ TEST(Parser, ShortQuery)
   EXPECT_EQ(doc.children[0]->selection_set->children[0]->arguments.size(), 2u);
 }
 
+TEST(Parser, FragmentQuery)
+{
+  document doc("query withFragments{file{items{...fileFields}}} fragment fileFields on File{id name}");
+  doc.all_nodes.reserve(20);
+  parser parser(doc);
+  EXPECT_TRUE(parser.parse());
+  ASSERT_EQ(doc.children.size(), 2u);
+  EXPECT_EQ(doc.children[0]->type, syntax_node_type::OperationDefinition);
+  EXPECT_EQ(doc.children[0]->name, "withFragments");
+  ASSERT_NE(doc.children[0]->selection_set, nullptr);
+  EXPECT_EQ(doc.children[0]->directives.size(), 0u);
+  EXPECT_EQ(doc.children[0]->arguments.size(), 0u);
+  ASSERT_EQ(doc.children[0]->selection_set->children.size(), 1u);
+  EXPECT_EQ(doc.children[0]->selection_set->children[0]->arguments.size(), 0u);
+
+  EXPECT_EQ(doc.children[1]->type, syntax_node_type::FragmentDefinition);
+  EXPECT_EQ(doc.children[1]->name, "fileFields");
+  
+}
+
 TEST(Parser, Query)
 {
   std::string query = "query files($pattern: String = \"\\\"\"){\r\n\

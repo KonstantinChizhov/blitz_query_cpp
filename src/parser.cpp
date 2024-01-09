@@ -5,10 +5,8 @@ using namespace blitz_query_cpp;
 bool parser::unexpected_token()
 {
     return report_error(error_code_t::UnexpectedToken,
-                        "UnexpectedToken {} at line: {}:{}",
-                        current_token.value,
-                        tokenizer.get_line_number(),
-                        tokenizer.get_pos_in_line());
+                        "UnexpectedToken {}",
+                        current_token.value);
 }
 
 bool parser::create_new_node(syntax_node_type type, bool is_leaf)
@@ -66,11 +64,9 @@ bool parser::parse_keyword_token(syntax_node_type type, std::string_view keyword
     if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
     {
         return report_error(error_code_t::UnexpectedToken,
-                            "Expected keyword {} got: {} at line {}:{}",
+                            "Expected keyword '{}' got: '{}'",
                             keyword,
-                            current_token.value,
-                            tokenizer.get_line_number(),
-                            tokenizer.get_pos_in_line());
+                            current_token.value);
     }
     return parse_node(type, token_type::Name);
 }
@@ -82,11 +78,9 @@ bool parser::expect_keyword_token(std::string_view keyword, bool optional)
         if (optional)
             return false;
         return report_error(error_code_t::UnexpectedToken,
-                            "Expected keyword '{}' got: '{}' at line {}:{}",
+                            "Expected keyword '{}' got: '{}'",
                             keyword,
-                            current_token.value,
-                            tokenizer.get_line_number(),
-                            tokenizer.get_pos_in_line());
+                            current_token.value);
     }
     return next_token();
 }
@@ -551,8 +545,36 @@ bool parser::parse_field()
 
 bool parser::parse_fragment()
 {
+    if(!parse_node(syntax_node_type::FragmentSpread, token_type::FragmentSpread, ParseNodeIfMatch))
+        return false;
 
-    return false;
+    if(!current_token.of_type(token_type::Name))
+        return report_error(error_code_t::SyntaxError, "fragment name or inline fragment expected");  
+  
+    auto &node = current_node();
+    // inline fragment
+    if(current_token.value == "on")
+    {
+        if(!next_token())
+            return false;
+        if(!parse_node(syntax_node_type::NamedType, token_type::Name, NodeIsLeaf))
+            return false;
+        node.definition_type = &last_node();
+
+        if(!parse_directives(false))
+            return false;
+        
+        if(!parse_selection_set())
+            return false;
+    }
+    else
+    {
+        node.name = current_token.value;
+        if(!parse_directives(false))
+            return false;
+    }
+    pop_node();
+    return true;
 }
 
 bool parser::parse_type_extension()

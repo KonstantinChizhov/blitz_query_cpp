@@ -29,7 +29,7 @@ namespace blitz_query_cpp
         error_code_t error_code = error_code_t::OK;
         index_t last_token_end = 0;
         std::string_view current_description;
- 
+
     public:
         parser(document &doc_)
             : doc(doc_),
@@ -50,16 +50,17 @@ namespace blitz_query_cpp
         bool report_error(error_code_t code, std::string_view fmt, Args &&...args)
         {
             error_code = code;
-            error_msg = std::vformat(fmt, std::make_format_args(args...));
+            error_msg = std::vformat(fmt, std::make_format_args(args...)) + std::format(" at: {}", tokenizer.get_line_number(), tokenizer.get_pos_in_line());
             return false;
         }
 
         void pop_node()
         {
             update_node_size_and_content();
-            if (nodes_stack.size() == 1)
+            if (nodes_stack.size() <= 1)
             {
-                report_error(error_code_t::SyntaxError, "Unbalanced nodes stack");
+                report_error(error_code_t::SyntaxError, "Unmatched brases found");
+                return;
             }
             nodes_stack.pop();
         }
