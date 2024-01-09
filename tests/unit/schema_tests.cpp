@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include <type_system/schema.hpp>
 #include <type_system/schema_parser.hpp>
+#include <type_system/builtin_types.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -136,7 +137,6 @@ TEST(Schema, ParseInputDef)
    EXPECT_EQ(deleted.is_optional(), true);
 }
 
-
 TEST(Schema, ParseTypeDef)
 {
    std::string scm = "\"files descr\" type Files implements FileSystem @foo(bar:\"baz\") { \"file descr\" file(skip: Int take: Int where: fileFilterInput order: [fileSortInput!]): fileCollectionSegment @bar }";
@@ -145,7 +145,6 @@ TEST(Schema, ParseTypeDef)
    bool res = parser.parse(my_schema, scm);
    EXPECT_EQ(parser.get_error_msg(), "");
    ASSERT_EQ(res, true);
-   
 
    auto &type = *my_schema.types.begin();
    EXPECT_EQ(type.directives.size(), 1u);
@@ -177,7 +176,6 @@ TEST(Schema, ParseInterfaceDef)
    bool res = parser.parse(my_schema, scm);
    EXPECT_EQ(parser.get_error_msg(), "");
    ASSERT_EQ(res, true);
-   
 
    auto &type = *my_schema.types.begin();
    EXPECT_EQ(type.directives.size(), 1u);
@@ -201,18 +199,16 @@ TEST(Schema, ParseInterfaceDef)
    EXPECT_EQ(file.is_optional(), true);
 }
 
-
 namespace fs = std::filesystem;
 
 std::string readFile(fs::path path)
 {
-    std::ifstream f(path, std::ios::in | std::ios::binary);
-    const auto sz = fs::file_size(path);
-    std::string result(sz, '\0');
-    f.read(result.data(), sz);
-    return result;
+   std::ifstream f(path, std::ios::in | std::ios::binary);
+   const auto sz = fs::file_size(path);
+   std::string result(sz, '\0');
+   f.read(result.data(), sz);
+   return result;
 }
-
 
 TEST(Schema, LoadSchema)
 {
@@ -221,5 +217,12 @@ TEST(Schema, LoadSchema)
    schema_parser parser;
    bool res = parser.parse(my_schema, scm);
    EXPECT_EQ(parser.get_error_msg(), "");
+   ASSERT_EQ(res, true);
+}
+
+TEST(Schema, SchemaIntrospectionTypes)
+{
+   schema my_schema;
+   bool res = add_introspection_types(my_schema);
    ASSERT_EQ(res, true);
 }

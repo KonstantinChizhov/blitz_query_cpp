@@ -4,11 +4,11 @@ using namespace blitz_query_cpp;
 
 bool parser::unexpected_token()
 {
-    report_error(error_code_t::UnexpectedToken,
-                 "UnexpectedToken: {} at {}",
-                 current_token.value,
-                 current_token.pos);
-    return false;
+    return report_error(error_code_t::UnexpectedToken,
+                        "UnexpectedToken {} at line: {}:{}",
+                        current_token.value,
+                        tokenizer.get_line_number(),
+                        tokenizer.get_pos_in_line());
 }
 
 bool parser::create_new_node(syntax_node_type type, bool is_leaf)
@@ -66,10 +66,11 @@ bool parser::parse_keyword_token(syntax_node_type type, std::string_view keyword
     if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
     {
         return report_error(error_code_t::UnexpectedToken,
-                            "Expected keyword {} got: {} at {}",
+                            "Expected keyword {} got: {} at line {}:{}",
                             keyword,
                             current_token.value,
-                            current_token.pos);
+                            tokenizer.get_line_number(),
+                            tokenizer.get_pos_in_line());
     }
     return parse_node(type, token_type::Name);
 }
@@ -81,10 +82,11 @@ bool parser::expect_keyword_token(std::string_view keyword, bool optional)
         if (optional)
             return false;
         return report_error(error_code_t::UnexpectedToken,
-                            "Expected keyword '{}' got: '{}' at {}",
+                            "Expected keyword '{}' got: '{}' at line {}:{}",
                             keyword,
                             current_token.value,
-                            current_token.pos);
+                            tokenizer.get_line_number(),
+                            tokenizer.get_pos_in_line());
     }
     return next_token();
 }
@@ -647,11 +649,12 @@ bool parser::parse_union_type_definition()
     do
     {
         if (!parse_named_type(NodeIsLeaf))
-        {
             return false;
-        }
 
-        if (!expect_token(token_type::Union))
+        if (!current_token.of_type(token_type::Union))
+            break;
+
+        if (!next_token())
             break;
 
     } while (true);
@@ -682,7 +685,7 @@ bool parser::parse_object_type_definition(syntax_node_type type, std::string_vie
 
     while (!current_token.of_type(token_type::RBrace))
     {
-        if(!parse_description())
+        if (!parse_description())
             return false;
         if (!create_new_node(syntax_node_type::FieldDefinition, false))
             return false;

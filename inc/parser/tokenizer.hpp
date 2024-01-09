@@ -8,15 +8,16 @@ namespace blitz_query_cpp
     {
         std::string_view query;
         index_t current_pos = 0;
+        index_t line_number = 0;
+        index_t line_start = 0;
         inline auto chars_left() { return query.size() - current_pos; }
 
     public:
-
         tokenizer_t(std::string_view query_)
             : query(query_)
         {
             // skip utf-8 BOM
-            if (query.size() > 3 && query[0] == '\xEF' )
+            if (query.size() > 3 && query[0] == '\xEF')
             {
                 if (query[1] == '\xBB' && query[2] == '\xBF')
                     current_pos += 3;
@@ -24,6 +25,8 @@ namespace blitz_query_cpp
         }
 
         token next_token();
+        index_t get_line_number() const { return line_number; }
+        index_t get_pos_in_line() const { return current_pos - line_start; }
 
     private:
         inline void eat_whitespace();

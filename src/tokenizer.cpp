@@ -88,12 +88,17 @@ void tokenizer_t::eat_whitespace()
     do
     {
         char ch = query[current_pos];
+        if (ch == '\n')
+        {
+            line_number++;
+            line_start = current_pos;
+        }
         if (!is_whitespace(ch))
         {
             break;
         }
         current_pos++;
-    }while (current_pos < query.size());
+    } while (current_pos < query.size());
 }
 
 token tokenizer_t::single_char_token(token_type type)
@@ -154,6 +159,8 @@ token tokenizer_t::read_comment()
         char ch = query[current_pos];
         if (is_newline_char(ch))
         {
+            line_number++;
+            line_start = current_pos;
             break;
         }
         current_pos++;

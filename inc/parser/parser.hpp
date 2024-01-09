@@ -29,7 +29,7 @@ namespace blitz_query_cpp
         error_code_t error_code = error_code_t::OK;
         index_t last_token_end = 0;
         std::string_view current_description;
-
+ 
     public:
         parser(document &doc_)
             : doc(doc_),
