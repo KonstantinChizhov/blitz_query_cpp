@@ -54,15 +54,15 @@ namespace blitz_query_cpp
             return false;
         }
 
-        void pop_node()
+        bool pop_node()
         {
             update_node_size_and_content();
             if (nodes_stack.size() <= 1)
             {
-                report_error(error_code_t::SyntaxError, "Unmatched brases found");
-                return;
+                return report_error(error_code_t::SyntaxError, "Unmatched brases found");
             }
             nodes_stack.pop();
+            return true;
         }
 
         void update_node_size_and_content();
@@ -83,14 +83,14 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_directive_definition();
         [[nodiscard]] bool parse_directive(bool is_constant);
         [[nodiscard]] bool parse_directives(bool is_constant);
-        [[nodiscard]] bool parse_enum_type_definition();
+        [[nodiscard]] bool parse_enum_type_definition(syntax_node_type node_type);
         [[nodiscard]] bool parse_enum_value();
         [[nodiscard]] bool parse_enum_values();
         [[nodiscard]] bool parse_field();
         [[nodiscard]] bool parse_fragment_definition();
         [[nodiscard]] bool parse_fragment();
         [[nodiscard]] bool parse_implements_interfaces();
-        [[nodiscard]] bool parse_input_object_type_definition();
+        [[nodiscard]] bool parse_input_object_type_definition(syntax_node_type node_type);
         [[nodiscard]] bool parse_keyword_token(syntax_node_type type, std::string_view keyword);
         [[nodiscard]] bool parse_list(bool is_constant);
         [[nodiscard]] bool parse_name(token_type name_type = token_type::Name);
@@ -100,14 +100,14 @@ namespace blitz_query_cpp
         [[nodiscard]] bool parse_object(bool is_constant);
         [[nodiscard]] bool parse_operation_definition();
         [[nodiscard]] bool parse_operation_type_definition();
-        [[nodiscard]] bool parse_scalar_type_definition();
-        [[nodiscard]] bool parse_schema_definition();
+        [[nodiscard]] bool parse_scalar_type_definition(syntax_node_type node_type);
+        [[nodiscard]] bool parse_schema_definition(syntax_node_type node_type);
         [[nodiscard]] bool parse_selection_set();
         [[nodiscard]] bool parse_selection();
         [[nodiscard]] bool parse_short_operation_definition();
         [[nodiscard]] bool parse_type_extension();
         [[nodiscard]] bool parse_type_reference();
-        [[nodiscard]] bool parse_union_type_definition();
+        [[nodiscard]] bool parse_union_type_definition(syntax_node_type node_type);
         [[nodiscard]] bool parse_value_literal(bool is_constant);
         [[nodiscard]] bool parse_variable_definition();
         [[nodiscard]] bool parse_variable_definitions();

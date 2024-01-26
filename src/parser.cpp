@@ -141,19 +141,19 @@ bool parser::parse_definitions()
         case "directive"_crc32:
             return parse_directive_definition();
         case "schema"_crc32:
-            return parse_schema_definition();
+            return parse_schema_definition(syntax_node_type::SchemaDefinition);
         case "scalar"_crc32:
-            return parse_scalar_type_definition();
+            return parse_scalar_type_definition(syntax_node_type::ScalarTypeDefinition);
         case "type"_crc32:
             return parse_object_type_definition(syntax_node_type::ObjectTypeDefinition, "type");
         case "interface"_crc32:
             return parse_object_type_definition(syntax_node_type::ObjectTypeDefinition, "interface");
         case "union"_crc32:
-            return parse_union_type_definition();
+            return parse_union_type_definition(syntax_node_type::UnionTypeDefinition);
         case "enum"_crc32:
-            return parse_enum_type_definition();
+            return parse_enum_type_definition(syntax_node_type::EnumTypeDefinition);
         case "input"_crc32:
-            return parse_input_object_type_definition();
+            return parse_input_object_type_definition(syntax_node_type::InputObjectTypeDefinition);
         case "extend"_crc32:
             return parse_type_extension();
         }
@@ -211,8 +211,7 @@ bool parser::parse_operation_definition()
     if (!parse_selection_set())
         return false;
 
-    pop_node();
-    return true;
+   return pop_node();
 }
 
 bool parser::parse_short_operation_definition()
@@ -224,8 +223,7 @@ bool parser::parse_short_operation_definition()
     node.size = doc.doc_value.size() - node.pos;
     if (!parse_selection_set())
         return false;
-    pop_node();
-    return true;
+   return pop_node();
 }
 
 bool parser::parse_variable_definitions()
@@ -278,8 +276,7 @@ bool parser::parse_variable_definition()
 
     var_node.directives = var_node.children.subspan(child_count);
 
-    pop_node();
-    return true;
+   return pop_node();
 }
 
 bool parser::parse_value_literal(bool is_constant)
@@ -349,8 +346,7 @@ bool parser::parse_list(bool is_constant)
     if (!expect_token(token_type::RBrace))
         return false;
 
-    pop_node();
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_object(bool is_constant)
@@ -375,8 +371,7 @@ bool parser::parse_object(bool is_constant)
     if (!expect_token(token_type::RBrace))
         return false;
 
-    pop_node();
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_type_reference()
@@ -410,8 +405,7 @@ bool parser::parse_type_reference()
     }
 
     current_node().parent->definition_type = &current_node();
-    pop_node();
-    return true;
+   return pop_node();
 }
 
 bool parser::parse_directives(bool is_constant)
@@ -437,8 +431,7 @@ bool parser::parse_directive(bool is_constant)
     if (!parse_arguments(is_constant))
         return false;
 
-    pop_node();
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_arguments(bool is_constant)
@@ -486,8 +479,7 @@ bool parser::parse_selection_set()
     if (!expect_token(token_type::RBrace))
         return false;
 
-    pop_node();
-    return true;
+   return pop_node();
 }
 
 bool parser::parse_selection()
@@ -539,52 +531,67 @@ bool parser::parse_field()
             return false;
     }
 
-    pop_node();
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_fragment()
 {
-    if(!parse_node(syntax_node_type::FragmentSpread, token_type::FragmentSpread, ParseNodeIfMatch))
+    if (!parse_node(syntax_node_type::FragmentSpread, token_type::FragmentSpread, ParseNodeIfMatch))
         return false;
 
-    if(!current_token.of_type(token_type::Name))
-        return report_error(error_code_t::SyntaxError, "fragment name or inline fragment expected");  
-  
+    if (!current_token.of_type(token_type::Name))
+        return report_error(error_code_t::SyntaxError, "fragment name or inline fragment expected");
+
     auto &node = current_node();
     // inline fragment
-    if(current_token.value == "on")
+    if (current_token.value == "on")
     {
-        if(!next_token())
+        if (!next_token())
             return false;
-        if(!parse_node(syntax_node_type::NamedType, token_type::Name, NodeIsLeaf))
+        if (!parse_node(syntax_node_type::NamedType, token_type::Name, NodeIsLeaf))
             return false;
         node.definition_type = &last_node();
 
-        if(!parse_directives(false))
+        if (!parse_directives(false))
             return false;
-        
-        if(!parse_selection_set())
+
+        if (!parse_selection_set())
             return false;
     }
     else
     {
         node.name = current_token.value;
-        if(!parse_directives(false))
+        if (!parse_directives(false))
             return false;
     }
-    pop_node();
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_type_extension()
 {
-    return true;
+    if (!next_token())
+        return report_error(error_code_t::UnexpectedEndOfDocument, "Type extension expected");
+    switch (hash_crc32(current_token.value))
+    {
+    case "scalar"_crc32:
+        return parse_scalar_type_definition(syntax_node_type::ScalarTypeExtension);
+    case "union"_crc32:
+        return parse_union_type_definition(syntax_node_type::UnionTypeExtension);
+    case "enum"_crc32:
+        return parse_enum_type_definition(syntax_node_type::EnumTypeExtension);
+    case "type"_crc32:
+        return parse_object_type_definition(syntax_node_type::ObjectTypeExtension, "type");
+    case "interface"_crc32:
+        return parse_object_type_definition(syntax_node_type::InterfaceTypeDefinition, "interface");
+    case "imput"_crc32:
+        return parse_input_object_type_definition(syntax_node_type::InterfaceTypeDefinition);
+    }
+    return report_error(error_code_t::InvalidToken, "Expected type, scalar, union, enum, interface or union. Got: {}", current_token.value);
 }
 
-bool parser::parse_input_object_type_definition()
+bool parser::parse_input_object_type_definition(syntax_node_type node_type)
 {
-    if (!parse_keyword_token(syntax_node_type::InputObjectTypeDefinition, "input"))
+    if (!parse_keyword_token(node_type, "input"))
         return false;
 
     if (!parse_name())
@@ -592,17 +599,19 @@ bool parser::parse_input_object_type_definition()
 
     if (!parse_directives(false))
         return false;
+
+    if(node_type == syntax_node_type::InputObjectTypeExtension && !current_token.of_type(token_type::LBrace))
+        return pop_node();
 
     if (!parse_argument_definitions(token_type::LBrace, token_type::RBrace))
         return false;
 
-    pop_node();
-    return true;
+    return pop_node();
 }
 
-bool parser::parse_enum_type_definition()
+bool parser::parse_enum_type_definition(syntax_node_type node_type)
 {
-    if (!parse_keyword_token(syntax_node_type::EnumTypeDefinition, "enum"))
+    if (!parse_keyword_token(node_type, "enum"))
         return false;
 
     if (!parse_name())
@@ -610,6 +619,9 @@ bool parser::parse_enum_type_definition()
 
     if (!parse_directives(false))
         return false;
+
+    if (node_type == syntax_node_type::EnumTypeExtension && !current_token.of_type(token_type::LBrace))
+        return pop_node();
 
     if (!expect_token(token_type::LBrace))
         return false;
@@ -620,8 +632,7 @@ bool parser::parse_enum_type_definition()
     if (!expect_token(token_type::RBrace))
         return false;
 
-    pop_node();
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_enum_values()
@@ -644,13 +655,12 @@ bool parser::parse_enum_value()
         return false;
     if (!parse_directives(true))
         return false;
-    pop_node();
-    return true;
+    return pop_node();
 }
 
-bool parser::parse_union_type_definition()
+bool parser::parse_union_type_definition(syntax_node_type node_type)
 {
-    if (!parse_keyword_token(syntax_node_type::UnionTypeDefinition, "union"))
+    if (!parse_keyword_token(node_type, "union"))
         return false;
 
     if (!parse_name())
@@ -658,6 +668,9 @@ bool parser::parse_union_type_definition()
 
     if (!parse_directives(false))
         return false;
+
+    if (node_type == syntax_node_type::UnionTypeExtension && !current_token.of_type(token_type::Equal))
+       return pop_node();
 
     if (!expect_token(token_type::Equal))
         return false;
@@ -683,9 +696,7 @@ bool parser::parse_union_type_definition()
     auto &node = current_node();
     node.implements = node.children.subspan(child_count);
 
-    pop_node();
-
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_object_type_definition(syntax_node_type type, std::string_view keyword)
@@ -798,8 +809,7 @@ bool parser::parse_argument_definition()
     }
     if (!parse_directives(true))
         return false;
-    pop_node();
-    return true;
+   return pop_node();
 }
 
 bool parser::parse_name(token_type name_type)
@@ -814,9 +824,9 @@ bool parser::parse_name(token_type name_type)
     return next_token();
 }
 
-bool parser::parse_scalar_type_definition()
+bool parser::parse_scalar_type_definition(syntax_node_type node_type)
 {
-    if (!parse_node(syntax_node_type::ScalarTypeDefinition, token_type::Name))
+    if (!parse_node(node_type, token_type::Name))
         return false;
 
     if (!parse_name())
@@ -825,17 +835,19 @@ bool parser::parse_scalar_type_definition()
     if (!parse_directives(true))
         return false;
 
-    pop_node();
-    return true;
+   return pop_node();
 }
 
-bool parser::parse_schema_definition()
+bool parser::parse_schema_definition(syntax_node_type node_type)
 {
-    if (!parse_keyword_token(syntax_node_type::SchemaDefinition, "schema"))
+    if (!parse_keyword_token(node_type, "schema"))
         return false;
 
     if (!parse_directives(true))
         return false;
+
+    if(node_type == syntax_node_type::SchemaExtension && !current_token.of_type(token_type::LBrace))
+        return pop_node();
 
     if (!expect_token(token_type::LBrace))
         return false;
@@ -849,8 +861,7 @@ bool parser::parse_schema_definition()
     if (!expect_token(token_type::RBrace))
         return false;
 
-    pop_node();
-    return true;
+    return  pop_node();
 }
 
 bool parser::parse_operation_type_definition()
@@ -874,8 +885,7 @@ bool parser::parse_operation_type_definition()
     if (!parse_named_type(NodeIsLeaf))
         return false;
 
-    pop_node();
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_named_type(NodeParseOptions opts)
@@ -928,8 +938,7 @@ bool parser::parse_directive_definition()
 
     } while (target != directive_target_t::None);
 
-    pop_node();
-    return true;
+    return pop_node();
 }
 
 bool parser::parse_fragment_definition()
@@ -948,6 +957,5 @@ bool parser::parse_fragment_definition()
         return false;
     if (!parse_selection_set())
         return false;
-    pop_node();
-    return true;
+   return pop_node();
 }
