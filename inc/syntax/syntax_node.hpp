@@ -42,7 +42,7 @@ namespace blitz_query_cpp
             syntax_node *selection_set = nullptr;
             syntax_node *definition_type;
         };
-        
+
         union
         {
             node_span arguments = node_span();
@@ -61,6 +61,7 @@ namespace blitz_query_cpp
 
         bool add_child(syntax_node *child_node);
         bool add_child(syntax_node &child_node) { return add_child(&child_node); }
+        bool of_type(syntax_node_type t) { return has_any_flag(type, t); }
 
     private:
         std::variant<

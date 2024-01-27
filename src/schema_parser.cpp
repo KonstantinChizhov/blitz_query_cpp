@@ -60,13 +60,16 @@ bool schema_parser::process_doc(schema &schema, const document &doc)
         case syntax_node_type::UnionTypeDefinition:
             result = process_union_type_def(schema, *definition);
             break;
-
+        case syntax_node_type::SchemaExtension:
+            result = process_union_type_def(schema, *definition);
+            break;
         case syntax_node_type::InputObjectTypeExtension:
+
         case syntax_node_type::EnumTypeExtension:
         case syntax_node_type::UnionTypeExtension:
         case syntax_node_type::ObjectTypeExtension:
         case syntax_node_type::ScalarTypeExtension:
-        case syntax_node_type::SchemaExtension:
+
         case syntax_node_type::InterfaceTypeExtension:
 
         default:
@@ -75,7 +78,7 @@ bool schema_parser::process_doc(schema &schema, const document &doc)
 
         if (!result)
         {
-            return result;
+            return report_error("Not a schema definition found: {}", enum_name(definition->type));
         }
     }
     return true;
@@ -85,27 +88,39 @@ bool schema_parser::process_schema_def(schema &schema, const syntax_node &defini
 {
     for (syntax_node *child : definition.children)
     {
-        if (child->type != syntax_node_type::OperationTypeDefinition)
+        if (child->type == syntax_node_type::OperationTypeDefinition)
         {
-            // invalid schema
-            return false;
+            if (child->children.size() < 1)
+            {
+                return false;
+            }
+            if (child->children[0]->type != syntax_node_type::NamedType)
+            {
+                return false;
+            }
+            if (child->operation_type == operation_type_t::Query)
+            {
+                schema.query_type_name = child->children[0]->content;
+            }
+            if (child->operation_type == operation_type_t::Mutation)
+            {
+                schema.mutation_type_name = child->children[0]->content;
+            }
+            continue;
         }
-        if (child->children.size() < 1)
+
+        if (child->type == syntax_node_type::Directive)
         {
-            return false;
+            directive dir{child->name};
+
+            if (!process_params(dir.parameters, *child))
+                return false;
+
+            schema.schema_directives.push_back(std::move(dir));
+
+            continue;
         }
-        if (child->children[0]->type != syntax_node_type::NamedType)
-        {
-            return false;
-        }
-        if (child->operation_type == operation_type_t::Query)
-        {
-            schema.query_type_name = child->children[0]->content;
-        }
-        if (child->operation_type == operation_type_t::Mutation)
-        {
-            schema.mutation_type_name = child->children[0]->content;
-        }
+        return report_error("Unexpected schema element of type: {}", enum_name(child->type));
     }
     return true;
 }

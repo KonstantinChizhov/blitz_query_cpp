@@ -13,6 +13,7 @@ namespace blitz_query_cpp
     public:
         named_collection<object_type> types;
         named_collection<directive_type> directives;
+        std::vector<directive> schema_directives;
 
         std::string query_type_name;
         std::string mutation_type_name;
