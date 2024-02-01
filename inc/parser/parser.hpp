@@ -50,7 +50,7 @@ namespace blitz_query_cpp
         bool report_error(error_code_t code, std::string_view fmt, Args &&...args)
         {
             error_code = code;
-            error_msg = std::vformat(fmt, std::make_format_args(args...)) + std::format(" at: {}", tokenizer.get_line_number(), tokenizer.get_pos_in_line());
+            error_msg = std::vformat(fmt, std::make_format_args(args...)) + std::format(" at: {}:{}", tokenizer.get_line_number(), tokenizer.get_pos_in_line());
             return false;
         }
 

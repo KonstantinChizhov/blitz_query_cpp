@@ -63,8 +63,8 @@ TEST(Schema, ParseDirectiveDef)
    schema_parser parser;
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
-   ASSERT_EQ(my_schema.directives.size(), 1u);
-   auto &type = *my_schema.directives.begin();
+   ASSERT_EQ(my_schema.directive_types.size(), 1u);
+   auto &type = *my_schema.directive_types.begin();
    EXPECT_EQ(type.description, "directive description");
    EXPECT_EQ(type.name, "@foo");
    EXPECT_EQ(type.target, directive_target_t::Scalar | directive_target_t::Enum | directive_target_t::IsRepeatable);
@@ -225,4 +225,16 @@ TEST(Schema, SchemaIntrospectionTypes)
    schema my_schema;
    bool res = add_introspection_types(my_schema);
    ASSERT_EQ(res, true);
+}
+
+
+TEST(Schema, ParseObjectExt)
+{
+   std::string scm = "type Foo{bar:Int} extend type Foo{baz:Int} ";
+   schema my_schema;
+   schema_parser parser;
+   bool res = parser.parse(my_schema, scm);
+   EXPECT_EQ(parser.get_error_msg(), "");
+   ASSERT_EQ(res, true);
+
 }

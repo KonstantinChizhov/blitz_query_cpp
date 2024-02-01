@@ -42,7 +42,7 @@ namespace blitz_query_cpp
     {
         if (it == s.end())
             return;
-        auto node = s.extract(it);
+        T node = std::move(s.extract(it));
         if (node.empty())
             return;
         f(node.value());

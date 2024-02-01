@@ -929,10 +929,11 @@ bool parser::parse_directive_definition()
             break;
         }
         target = parse_directive_target(current_token.value);
-        if (target != directive_target_t::None)
+        if (target == directive_target_t::None)
         {
-            current_node().directive_target |= target;
+            break;
         }
+        current_node().directive_target |= target;
         if (!next_token())
             return false;
 

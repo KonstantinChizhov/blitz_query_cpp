@@ -55,31 +55,37 @@ bool schema_parser::process_doc(schema &schema, const document &doc)
             result = process_input_type_def(schema, *definition);
             break;
         case syntax_node_type::InterfaceTypeDefinition:
-
+            result = process_interface_type_def(schema, *definition);
             break;
         case syntax_node_type::UnionTypeDefinition:
             result = process_union_type_def(schema, *definition);
             break;
         case syntax_node_type::SchemaExtension:
-            result = process_union_type_def(schema, *definition);
+            result = process_schema_ext(schema, *definition);
             break;
         case syntax_node_type::InputObjectTypeExtension:
-
+            result = process_input_ext(schema, *definition);
+            break;
         case syntax_node_type::EnumTypeExtension:
+            result = process_enum_ext(schema, *definition);
+            break;
         case syntax_node_type::UnionTypeExtension:
+            result = process_union_ext(schema, *definition);
+            break;
         case syntax_node_type::ObjectTypeExtension:
+            result = process_output_ext(schema, *definition, type_kind::Object);
+            break;
         case syntax_node_type::ScalarTypeExtension:
-
+            result = process_scalar_ext(schema, *definition);
+            break;
         case syntax_node_type::InterfaceTypeExtension:
-
+            result = process_output_ext(schema, *definition, type_kind::Interface);
+             break;
         default:
-            result = false;
-        }
-
-        if (!result)
-        {
             return report_error("Not a schema definition found: {}", enum_name(definition->type));
         }
+        if(!result)
+            return false;
     }
     return true;
 }
@@ -111,17 +117,52 @@ bool schema_parser::process_schema_def(schema &schema, const syntax_node &defini
 
         if (child->type == syntax_node_type::Directive)
         {
-            directive dir{child->name};
-
-            if (!process_params(dir.parameters, *child))
-                return false;
-
-            schema.schema_directives.push_back(std::move(dir));
-
             continue;
         }
         return report_error("Unexpected schema element of type: {}", enum_name(child->type));
     }
+    if (!process_directives(schema.directives, definition))
+        return false;
+    return true;
+}
+
+bool schema_parser::process_schema_ext(schema &schema, const syntax_node &definition)
+{
+    for (syntax_node *child : definition.children)
+    {
+        if (child->type == syntax_node_type::OperationTypeDefinition)
+        {
+            if (child->children.size() < 1)
+            {
+                return false;
+            }
+            if (child->children[0]->type != syntax_node_type::NamedType)
+            {
+                return false;
+            }
+            if (child->operation_type == operation_type_t::Query)
+            {
+                if (schema.query_type_name.size() > 0)
+                    return report_error(*child, "Query type is already defined in schema");
+                schema.query_type_name = child->children[0]->content;
+            }
+            if (child->operation_type == operation_type_t::Mutation)
+            {
+                if (schema.mutation_type_name.size() > 0)
+                    return report_error(*child, "Mutation type is already defined in schema");
+                schema.mutation_type_name = child->children[0]->content;
+            }
+            continue;
+        }
+
+        if (child->type == syntax_node_type::Directive)
+        {
+            continue;
+        }
+        return report_error("Unexpected schema element of type: {}", enum_name(child->type));
+    }
+    if (!process_directives(schema.directives, definition))
+        return false;
     return true;
 }
 
@@ -236,7 +277,7 @@ bool schema_parser::process_params(named_collection<parameter_value> &arguments,
     return true;
 }
 
-bool schema_parser::process_directives(type_system_object_with_directives &type, const syntax_node &definition)
+bool schema_parser::process_directives(std::vector<directive> &directives, const syntax_node &definition)
 {
     for (const syntax_node *directive_node : definition.directives)
     {
@@ -244,8 +285,8 @@ bool schema_parser::process_directives(type_system_object_with_directives &type,
 
         if (!process_params(dir.parameters, *directive_node))
             return false;
-
-        type.directives.push_back(std::move(dir));
+        
+        directives.push_back(std::move(dir));
     }
     return true;
 }
@@ -257,8 +298,8 @@ bool schema_parser::process_directive_type_def(schema &schema, const syntax_node
     if (!process_arguments(dir.arguments, definition))
         return false;
 
-    if (!schema.directives.insert(dir).second)
-        return report_error("directive with name {} already defined", definition.name);
+    if (!schema.directive_types.insert(dir).second)
+        return report_error("directive type with name {} already defined", definition.name);
 
     return true;
 }
@@ -375,6 +416,131 @@ bool schema_parser::process_input_type_def(schema &schema, const syntax_node &de
     return true;
 }
 
+bool schema_parser::process_input_ext(schema &schema, const syntax_node &definition)
+{
+    auto res = schema.types.find(definition.name);
+    if (res == schema.types.end())
+        return report_error(definition, "Type {} is not defined", definition.name);
+    if (res->kind != type_kind::InputObject)
+        return report_error(definition, "Type {} is not InputObject", definition.name);
+
+    object_type input_type = std::move(schema.types.extract(res).value());
+
+    if (!process_directives(input_type, definition))
+        return false;
+
+    for (const syntax_node *child_node : definition.children)
+    {
+        if (!process_input_field(input_type, *child_node))
+            return false;
+    }
+
+    if (!schema.types.insert(std::move(input_type)).second)
+        return report_error("Unable to extend type: {}", definition.name);
+
+    return true;
+}
+
+bool schema_parser::process_scalar_ext(schema &schema, const syntax_node &definition)
+{
+    auto res = schema.types.find(definition.name);
+    if (res == schema.types.end())
+        return report_error(definition, "Type {} is not defined", definition.name);
+    if (res->kind != type_kind::Scalar)
+        return report_error(definition, "Type {} is not Scalar", definition.name);
+
+    object_type type = std::move(schema.types.extract(res).value());
+
+    if (!process_directives(type, definition))
+        return false;
+
+    if (!schema.types.insert(std::move(type)).second)
+        return report_error("Unable to extend type: {}", definition.name);
+
+    return true;
+}
+
+bool schema_parser::process_enum_ext(schema &schema, const syntax_node &definition)
+{
+    auto res = schema.types.find(definition.name);
+    if (res == schema.types.end())
+        return report_error(definition, "Type {} is not defined", definition.name);
+    if (res->kind != type_kind::Enum)
+        return report_error(definition, "Type {} is not Enum", definition.name);
+
+    object_type enum_type = std::move(schema.types.extract(res).value());
+
+    if (!process_directives(enum_type, definition))
+        return false;
+    for (const syntax_node *child_node : definition.children)
+    {
+        if (!process_enum_value(enum_type, *child_node))
+            return false;
+    }
+
+    if (!schema.types.insert(std::move(enum_type)).second)
+        return report_error("Unable to extend type: {}", definition.name);
+
+    return true;
+}
+
+bool schema_parser::process_union_ext(schema &schema, const syntax_node &definition)
+{
+    auto res = schema.types.find(definition.name);
+    if (res == schema.types.end())
+        return report_error(definition, "Type {} is not defined", definition.name);
+    if (res->kind != type_kind::Union)
+        return report_error(definition, "Type {} is not Union", definition.name);
+
+    object_type union_type = std::move(schema.types.extract(res).value());
+
+    if (!process_directives(union_type, definition))
+        return false;
+
+    for (const syntax_node *union_member_def : definition.implements)
+    {
+        if (!process_implemented_type(union_type, *union_member_def))
+            return false;
+    }
+
+    if (!schema.types.insert(std::move(union_type)).second)
+        return report_error("Unable to extend type: {}", definition.name);
+
+    return true;
+}
+
+bool schema_parser::process_output_ext(schema &schema, const syntax_node &definition, type_kind kind)
+{
+    auto res = schema.types.find(definition.name);
+    if (res == schema.types.end())
+        return report_error(definition, "Type {} is not defined", definition.name);
+    if (res->kind != kind)
+        return report_error(definition, "Type {} is not matched", definition.name);
+
+    object_type output_type = std::move(schema.types.extract(res).value());
+
+    if (!process_directives(output_type, definition))
+        return false;
+
+    for (const syntax_node *interface : definition.implements)
+    {
+        if (!process_implemented_type(output_type, *interface))
+            return false;
+    }
+
+    for (const syntax_node *child_node : definition.children)
+    {
+        if (!process_output_field(output_type, *child_node))
+            return false;
+    }
+
+    if (!schema.types.insert(std::move(output_type)).second)
+        return report_error("Unable to extend type: {}", definition.name);
+
+    return true;
+}
+
+
 bool schema_parser::process_input_field(object_type &type, const syntax_node &field_node)
 {
     if (field_node.type != syntax_node_type::InputValueDefinition)
@@ -400,6 +566,31 @@ bool schema_parser::process_input_field(object_type &type, const syntax_node &fi
 bool schema_parser::process_output_type_def(schema &schema, const syntax_node &definition)
 {
     object_type output_type{type_kind::Object, std::string(definition.name), std::string(definition.description)};
+
+    if (!process_directives(output_type, definition))
+        return false;
+
+    for (const syntax_node *interface : definition.implements)
+    {
+        if (!process_implemented_type(output_type, *interface))
+            return false;
+    }
+
+    for (const syntax_node *child_node : definition.children)
+    {
+        if (!process_output_field(output_type, *child_node))
+            return false;
+    }
+
+    if (!schema.types.insert(std::move(output_type)).second)
+        return report_type_already_defined(definition.name);
+
+    return true;
+}
+
+bool schema_parser::process_interface_type_def(schema &schema, const syntax_node &definition)
+{
+    object_type output_type{type_kind::Interface, std::string(definition.name), std::string(definition.description)};
 
     if (!process_directives(output_type, definition))
         return false;

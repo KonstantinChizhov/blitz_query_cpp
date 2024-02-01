@@ -6,6 +6,27 @@
 namespace blitz_query_cpp
 {
     std::string_view introspection_schema = R""""(
+
+scalar Int
+scalar Float
+scalar String
+scalar Boolean
+scalar Long
+
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @deprecated(reason: String = "No longer supported") on FIELD
+directive @specifiedBy(url: String!) on SCALAR
+
+
+scalar UUID @specifiedBy(url: "https://tools.ietf.org/html/rfc4122")
+
+"""
+Represents an ISO-8601 compliant date time type.
+"""
+scalar DateTime  @specifiedBy(url: "https://scalars.graphql.org/andimarek/date-time")
+
+
 "A GraphQL Schema containes all available types and directives on the server and the entry points for query, mutation, and subscription operations."
 type __Schema {
   description: String
