@@ -53,7 +53,7 @@ namespace blitz_query_cpp
         {
             nullability_t nullability;
             operation_type_t operation_type;
-            long long intValue = 0;
+            int64_t intValue = 0;
             double floatValue;
             bool boolValue;
             directive_target_t directive_target;
