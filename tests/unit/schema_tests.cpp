@@ -14,8 +14,8 @@ using namespace blitz_query_cpp;
 TEST(Schema, ParseSchemaDef)
 {
    std::string scm = "schema { query: Query mutation: Mutation }";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    EXPECT_EQ(res, true);
    EXPECT_EQ(my_schema.query_type_name, "Query");
@@ -25,8 +25,8 @@ TEST(Schema, ParseSchemaDef)
 TEST(Schema, ParseScalarDef)
 {
    std::string scm = "\"scalar description\" scalar UUID @specifiedBy(url: \"https://tools.ietf.org/html/rfc4122\" foo: {bar: 1 baz: false}, param: null)";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
    ASSERT_EQ(my_schema.types.size(), 1u);
@@ -40,8 +40,8 @@ TEST(Schema, ParseScalarDef)
 TEST(Schema, ParseEnumDef)
 {
    std::string scm = "\"enum description\" enum BookGenre @foo {ART CHILDREN_BOOK SCIENCE}";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
    ASSERT_EQ(my_schema.types.size(), 1u);
@@ -59,8 +59,8 @@ TEST(Schema, ParseEnumDef)
 TEST(Schema, ParseDirectiveDef)
 {
    std::string scm = "\"directive description\" directive @foo (\"param descr\" param: String!, foo :Foo = {bar: 1 buz: true}) repeatable on SCALAR | ENUM";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
    ASSERT_EQ(my_schema.directive_types.size(), 1u);
@@ -89,8 +89,8 @@ TEST(Schema, ParseDirectiveDef)
 TEST(Schema, ParseUnionDef)
 {
    std::string scm = "\"union description\" union MyUnion @foo = User | Group";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
 
@@ -107,8 +107,8 @@ TEST(Schema, ParseUnionDef)
 TEST(Schema, ParseInputDef)
 {
    std::string scm = "\"input description\" input fileInput @foo { \"file is deleted\" deleted: Boolean! = true @bar name: String Id: UUID }";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    ASSERT_EQ(res, true);
 
@@ -140,8 +140,8 @@ TEST(Schema, ParseInputDef)
 TEST(Schema, ParseTypeDef)
 {
    std::string scm = "\"files descr\" type Files implements FileSystem @foo(bar:\"baz\") { \"file descr\" file(skip: Int take: Int where: fileFilterInput order: [fileSortInput!]): fileCollectionSegment @bar }";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    EXPECT_EQ(parser.get_error_msg(), "");
    ASSERT_EQ(res, true);
@@ -171,8 +171,8 @@ TEST(Schema, ParseTypeDef)
 TEST(Schema, ParseInterfaceDef)
 {
    std::string scm = "\"interface descr\" interface FileSystem @foo(bar:\"baz\") { \"file descr\" file(skip: Int take: Int where: fileFilterInput order: [fileSortInput!]): fileCollectionSegment @bar }";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    EXPECT_EQ(parser.get_error_msg(), "");
    ASSERT_EQ(res, true);
@@ -213,8 +213,8 @@ std::string readFile(fs::path path)
 TEST(Schema, LoadSchema)
 {
    std::string scm = readFile("test_data/schema.graphql");
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    EXPECT_EQ(parser.get_error_msg(), "");
    ASSERT_EQ(res, true);
@@ -222,7 +222,7 @@ TEST(Schema, LoadSchema)
 
 TEST(Schema, SchemaIntrospectionTypes)
 {
-   schema my_schema;
+   schema_t my_schema;
    bool res = add_introspection_types(my_schema);
    ASSERT_EQ(res, true);
 }
@@ -231,8 +231,8 @@ TEST(Schema, SchemaIntrospectionTypes)
 TEST(Schema, ParseObjectExt)
 {
    std::string scm = "type Foo{bar:Int} extend type Foo{baz:Int} ";
-   schema my_schema;
-   schema_parser parser;
+   schema_t my_schema;
+   schema_parser_t parser;
    bool res = parser.parse(my_schema, scm);
    EXPECT_EQ(parser.get_error_msg(), "");
    ASSERT_EQ(res, true);

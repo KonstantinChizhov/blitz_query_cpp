@@ -7,7 +7,7 @@
 
 namespace blitz_query_cpp
 {
-    class schema_parser
+    class schema_parser_t
     {
         std::string error_msg;
 
@@ -42,25 +42,25 @@ namespace blitz_query_cpp
     public:
         std::string_view get_error_msg() const { return error_msg; }
 
-        bool parse(schema &schema, std::string_view schema_string);
-        bool process_doc(schema &schema, const document &doc);
+        bool parse(schema_t &schema, std::string_view schema_string);
+        bool process_doc(schema_t &schema, const document_t &doc);
         bool process_directives(std::vector<directive> &directives, const syntax_node &definition);
-        bool process_directive_type_def(schema &schema, const syntax_node &definition);
+        bool process_directive_type_def(schema_t &schema, const syntax_node &definition);
 
-        bool process_schema_def(schema &schema, const syntax_node &definition);
-        bool process_scalar_type_def(schema &schema, const syntax_node &definition);
-        bool process_enum_type_def(schema &schema, const syntax_node &definition);   
-        bool process_union_type_def(schema &schema, const syntax_node &definition);
-        bool process_input_type_def(schema &schema, const syntax_node &definition);
-        bool process_output_type_def(schema &schema, const syntax_node &definition);
-        bool process_interface_type_def(schema &schema, const syntax_node &definition);
+        bool process_schema_def(schema_t &schema, const syntax_node &definition);
+        bool process_scalar_type_def(schema_t &schema, const syntax_node &definition);
+        bool process_enum_type_def(schema_t &schema, const syntax_node &definition);   
+        bool process_union_type_def(schema_t &schema, const syntax_node &definition);
+        bool process_input_type_def(schema_t &schema, const syntax_node &definition);
+        bool process_output_type_def(schema_t &schema, const syntax_node &definition);
+        bool process_interface_type_def(schema_t &schema, const syntax_node &definition);
 
-        bool process_schema_ext(schema &schema, const syntax_node &definition);
-        bool process_scalar_ext(schema &schema, const syntax_node &definition);
-        bool process_enum_ext(schema &schema, const syntax_node &definition);
-        bool process_union_ext(schema &schema, const syntax_node &definition);
-        bool process_input_ext(schema &schema, const syntax_node &definition);
-        bool process_output_ext(schema &schema, const syntax_node &definition, type_kind kind);
+        bool process_schema_ext(schema_t &schema, const syntax_node &definition);
+        bool process_scalar_ext(schema_t &schema, const syntax_node &definition);
+        bool process_enum_ext(schema_t &schema, const syntax_node &definition);
+        bool process_union_ext(schema_t &schema, const syntax_node &definition);
+        bool process_input_ext(schema_t &schema, const syntax_node &definition);
+        bool process_output_ext(schema_t &schema, const syntax_node &definition, type_kind kind);
 
 
         bool process_directives(type_system_object_with_directives &type, const syntax_node &definition)

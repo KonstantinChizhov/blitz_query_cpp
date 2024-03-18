@@ -9,14 +9,14 @@
 
 namespace blitz_query_cpp
 {
-    class document : public syntax_node
+    class document_t : public syntax_node
     {
     public:
         std::string doc_value;
         std::vector<syntax_node> all_nodes;
 
     public:
-        document(std::string doc)
+        document_t(std::string doc)
             : doc_value(std::move(doc))
         {
             pos = 0;

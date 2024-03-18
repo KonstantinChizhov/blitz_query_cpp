@@ -5,7 +5,7 @@
 
 namespace blitz_query_cpp
 {
-    class token
+    class token_t
     {
     public:
         std::string_view value;
@@ -13,12 +13,12 @@ namespace blitz_query_cpp
         index_t size;
         token_type type;
 
-        token(std::string_view token_value, index_t pos, index_t size, token_type type)
+        token_t(std::string_view token_value, index_t pos, index_t size, token_type type)
             : value(token_value), pos(pos), size(size), type(type)
         {
         }
 
-        token(token_type type = token_type::None)
+        token_t(token_type type = token_type::None)
             : value(), pos(0), size(0), type(type)
         {
         }

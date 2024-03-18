@@ -4,5 +4,5 @@
 
 namespace blitz_query_cpp
 {
-    bool add_introspection_types(schema &schema);
+    bool add_introspection_types(schema_t &schema);
 }

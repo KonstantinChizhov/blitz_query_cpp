@@ -5,11 +5,11 @@
 
 using namespace blitz_query_cpp;
 
-TEST(Parser, ParseArgumentDefinitions)
+TEST(Parser_t, ParseArgumentDefinitions)
 {
-  document doc("(stringVal: String = \"foo\", intVal :Int)");
+  document_t doc("(stringVal: String = \"foo\", intVal :Int)");
   doc.all_nodes.reserve(10);
-  parser parser(doc);
+  parser_t parser(doc);
   EXPECT_TRUE(parser.parse_argument_definitions());
   ASSERT_EQ(doc.children.size(), 2u);
   ASSERT_EQ(doc.arguments.size(), doc.children.size());
@@ -27,11 +27,11 @@ TEST(Parser, ParseArgumentDefinitions)
   ASSERT_EQ(doc.children[1]->definition_type->name, "Int");
 }
 
-TEST(Parser, ParseArguments)
+TEST(Parser_t, ParseArguments)
 {
-  document doc("(stringVal: \"foo\", intVal :42, objVal: {foo:10 bar:null} boolVal: true enumVal: Hello, floatVal : 3.14e2)");
+  document_t doc("(stringVal: \"foo\", intVal :42, objVal: {foo:10 bar:null} boolVal: true enumVal: Hello, floatVal : 3.14e2)");
   doc.all_nodes.reserve(20);
-  parser parser(doc);
+  parser_t parser(doc);
   EXPECT_TRUE(parser.parse_arguments(false));
   ASSERT_EQ(doc.children.size(), 6u);
   ASSERT_EQ(doc.arguments.size(), doc.children.size());
@@ -58,11 +58,11 @@ TEST(Parser, ParseArguments)
   EXPECT_EQ(doc.arguments[5]->children[0]->floatValue, 314.0);
 }
 
-TEST(Parser, ParseDirectives)
+TEST(Parser_t, ParseDirectives)
 {
-  document doc("@include(if:$foo) @custom");
+  document_t doc("@include(if:$foo) @custom");
   doc.all_nodes.reserve(20);
-  parser parser(doc);
+  parser_t parser(doc);
   EXPECT_TRUE(parser.parse_directives(false));
   ASSERT_EQ(doc.children.size(), 2u);
   ASSERT_EQ(doc.directives.size(), doc.children.size());
@@ -80,11 +80,11 @@ TEST(Parser, ParseDirectives)
   EXPECT_EQ(doc.directives[0]->arguments[0]->children[0]->name, "$foo");
 }
 
-TEST(Parser, ParseField)
+TEST(Parser_t, ParseField)
 {
-  document doc("my_pic :\tpicture(size:128)@include(if:$foo){type data}");
+  document_t doc("my_pic :\tpicture(size:128)@include(if:$foo){type data}");
   doc.all_nodes.reserve(20);
-  parser parser(doc);
+  parser_t parser(doc);
   EXPECT_TRUE(parser.parse_field());
   ASSERT_EQ(doc.children.size(), 1u);
   ASSERT_NE(doc.children[0]->selection_set, nullptr);
@@ -93,11 +93,11 @@ TEST(Parser, ParseField)
   ASSERT_EQ(doc.children[0]->selection_set->children.size(), 2u);
 }
 
-TEST(Parser, ShortQuery)
+TEST(Parser_t, ShortQuery)
 {
-  document doc("{file(skip:0,take:10){items{name Id}totalCount}}");
+  document_t doc("{file(skip:0,take:10){items{name Id}totalCount}}");
   doc.all_nodes.reserve(20);
-  parser parser(doc);
+  parser_t parser(doc);
   EXPECT_TRUE(parser.parse());
   ASSERT_EQ(doc.children.size(), 1u);
   EXPECT_EQ(doc.children[0]->type, syntax_node_type::OperationDefinition);
@@ -108,11 +108,11 @@ TEST(Parser, ShortQuery)
   EXPECT_EQ(doc.children[0]->selection_set->children[0]->arguments.size(), 2u);
 }
 
-TEST(Parser, FragmentQuery)
+TEST(Parser_t, FragmentQuery)
 {
-  document doc("query withFragments{file{items{...fileFields}}} fragment fileFields on File{id name}");
+  document_t doc("query withFragments{file{items{...fileFields}}} fragment fileFields on File{id name}");
   doc.all_nodes.reserve(20);
-  parser parser(doc);
+  parser_t parser(doc);
   EXPECT_TRUE(parser.parse());
   ASSERT_EQ(doc.children.size(), 2u);
   EXPECT_EQ(doc.children[0]->type, syntax_node_type::OperationDefinition);
@@ -128,7 +128,7 @@ TEST(Parser, FragmentQuery)
   
 }
 
-TEST(Parser, Query)
+TEST(Parser_t, Query)
 {
   std::string query = "query files($pattern: String = \"\\\"\"){\r\n\
   file(skip: 0, take : 10 where:{name:{contains: $pattern}}) {\r\n\
@@ -149,8 +149,8 @@ TEST(Parser, Query)
   }\r\n\
 }";
 
-  document doc{std::string(query)};
-  parser parser(doc);
+  document_t doc{std::string(query)};
+  parser_t parser(doc);
   EXPECT_TRUE(parser.parse());
 
   // for(auto& node : doc.all_nodes)

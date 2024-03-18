@@ -22,13 +22,13 @@ inline bool is_newline_char(char ch)
     return ch == '\n' || ch == '\r';
 }
 
-token tokenizer_t::next_token()
+token_t tokenizer_t::next_token()
 {
     eat_whitespace();
 
     if (current_pos >= query.size())
     {
-        return token(std::string_view(), query.size(), 0, token_type::End);
+        return token_t(std::string_view(), query.size(), 0, token_type::End);
     }
 
     char ch = query[current_pos];
@@ -36,7 +36,7 @@ token tokenizer_t::next_token()
     {
     case '\0':
         current_pos = query.size();
-        return token(token_type::End);
+        return token_t(token_type::End);
     case '{':
         return single_char_token(token_type::LBrace);
     case '}':
@@ -101,14 +101,14 @@ void tokenizer_t::eat_whitespace()
     } while (current_pos < query.size());
 }
 
-token tokenizer_t::single_char_token(token_type type)
+token_t tokenizer_t::single_char_token(token_type type)
 {
     index_t current = current_pos;
     current_pos++;
-    return token(query.substr(current, 1), current, 1, type);
+    return token_t(query.substr(current, 1), current, 1, type);
 }
 
-token tokenizer_t::handle_dot()
+token_t tokenizer_t::handle_dot()
 {
     if (query.size() - current_pos > 3)
     {
@@ -117,13 +117,13 @@ token tokenizer_t::handle_dot()
         {
             index_t current = current_pos;
             current_pos += 3;
-            return token(query.substr(current, 3), current, 3, token_type::FragmentSpread);
+            return token_t(query.substr(current, 3), current, 3, token_type::FragmentSpread);
         }
     }
     return single_char_token(token_type::MemberAccess);
 }
 
-token tokenizer_t::read_name(index_t skipChars, token_type type)
+token_t tokenizer_t::read_name(index_t skipChars, token_type type)
 {
     index_t start_pos = current_pos;
     current_pos += skipChars;
@@ -132,7 +132,7 @@ token tokenizer_t::read_name(index_t skipChars, token_type type)
         char ch = query[current_pos];
         if (!is_name_first_char(ch))
         {
-            return token(query.substr(current_pos, 1), current_pos, 1, token_type::InvalidToken);
+            return token_t(query.substr(current_pos, 1), current_pos, 1, token_type::InvalidToken);
         }
         current_pos++;
     }
@@ -147,10 +147,10 @@ token tokenizer_t::read_name(index_t skipChars, token_type type)
         current_pos++;
     }
     index_t len = current_pos - start_pos;
-    return token(query.substr(start_pos, len), start_pos, len, type);
+    return token_t(query.substr(start_pos, len), start_pos, len, type);
 }
 
-token tokenizer_t::read_comment()
+token_t tokenizer_t::read_comment()
 {
     eat_whitespace();
     index_t start_pos = current_pos;
@@ -166,16 +166,16 @@ token tokenizer_t::read_comment()
         current_pos++;
     }
     index_t len = current_pos - start_pos;
-    return token(query.substr(start_pos, len), start_pos, len, token_type::Comment);
+    return token_t(query.substr(start_pos, len), start_pos, len, token_type::Comment);
 }
 
-token tokenizer_t::handle_eq()
+token_t tokenizer_t::handle_eq()
 {
     index_t pos = current_pos++;
-    return token(query.substr(pos, 1), pos, 1, token_type::Equal);
+    return token_t(query.substr(pos, 1), pos, 1, token_type::Equal);
 }
 
-token tokenizer_t::read_string()
+token_t tokenizer_t::read_string()
 {
     current_pos++;
     index_t start_pos = current_pos;
@@ -227,15 +227,15 @@ token tokenizer_t::read_string()
         current_pos += 2;
     }
     auto value = unescape_string_value(query.substr(start_pos, len));
-    return token(value, start_pos, len, block_string ? token_type::StringBlock : token_type::StringLiteral);
+    return token_t(value, start_pos, len, block_string ? token_type::StringBlock : token_type::StringLiteral);
 }
 
-token tokenizer_t::invalid_token_before(index_t offset)
+token_t tokenizer_t::invalid_token_before(index_t offset)
 {
-    return token(query.substr(current_pos - offset, 1), current_pos - offset, 1, token_type::InvalidToken);
+    return token_t(query.substr(current_pos - offset, 1), current_pos - offset, 1, token_type::InvalidToken);
 }
 
-token tokenizer_t::read_number()
+token_t tokenizer_t::read_number()
 {
     index_t start_pos = current_pos;
     token_type type = token_type::IntLiteral;
@@ -292,7 +292,7 @@ token tokenizer_t::read_number()
     if (has_dot || has_exponent)
         type = token_type::FloatLiteral;
     index_t len = current_pos - start_pos;
-    return token(query.substr(start_pos, len), start_pos, len, type);
+    return token_t(query.substr(start_pos, len), start_pos, len, type);
 }
 
 std::string_view tokenizer_t::unescape_string_value(std::string_view value)

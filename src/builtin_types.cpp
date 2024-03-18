@@ -129,9 +129,9 @@ enum __DirectiveLocation {
   INPUT_FIELD_DEFINITION
 })"""";
 
-    bool add_introspection_types(schema &schema)
+    bool add_introspection_types(schema_t &schema)
     {
-        schema_parser parser;
+        schema_parser_t parser;
         bool res = parser.parse(schema, introspection_schema);
         if(!res)
         {

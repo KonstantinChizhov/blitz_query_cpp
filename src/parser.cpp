@@ -2,14 +2,14 @@
 
 using namespace blitz_query_cpp;
 
-bool parser::unexpected_token()
+bool parser_t::unexpected_token()
 {
     return report_error(error_code_t::UnexpectedToken,
                         "UnexpectedToken {}",
                         current_token.value);
 }
 
-bool parser::create_new_node(syntax_node_type type, bool is_leaf)
+bool parser_t::create_new_node(syntax_node_type type, bool is_leaf)
 {
     syntax_node &parent = *nodes_stack.top();
     syntax_node &node = doc.all_nodes.emplace_back();
@@ -30,7 +30,7 @@ bool parser::create_new_node(syntax_node_type type, bool is_leaf)
     return true;
 }
 
-bool parser::parse()
+bool parser_t::parse()
 {
     index_t token_count = count_tokens();
     // reserve node storage to avoid future reallocations
@@ -50,7 +50,7 @@ bool parser::parse()
     return true;
 }
 
-bool parser::expect_token(token_type expected_types)
+bool parser_t::expect_token(token_type expected_types)
 {
     if (!current_token.of_type(expected_types))
     {
@@ -59,7 +59,7 @@ bool parser::expect_token(token_type expected_types)
     return next_token();
 }
 
-bool parser::parse_keyword_token(syntax_node_type type, std::string_view keyword)
+bool parser_t::parse_keyword_token(syntax_node_type type, std::string_view keyword)
 {
     if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
     {
@@ -71,7 +71,7 @@ bool parser::parse_keyword_token(syntax_node_type type, std::string_view keyword
     return parse_node(type, token_type::Name);
 }
 
-bool parser::expect_keyword_token(std::string_view keyword, bool optional)
+bool parser_t::expect_keyword_token(std::string_view keyword, bool optional)
 {
     if (!current_token.of_type(token_type::Name) || current_token.value != keyword)
     {
@@ -85,10 +85,10 @@ bool parser::expect_keyword_token(std::string_view keyword, bool optional)
     return next_token();
 }
 
-index_t parser::count_tokens()
+index_t parser_t::count_tokens()
 {
     tokenizer_t local_tokenizer{doc.doc_value};
-    token t;
+    token_t t;
     index_t count = 0;
     do
     {
@@ -98,14 +98,14 @@ index_t parser::count_tokens()
     return count;
 }
 
-bool parser::next_token()
+bool parser_t::next_token()
 {
     last_token_end = current_token.pos + current_token.size;
     current_token = tokenizer.next_token();
     return true;
 }
 
-void parser::update_node_size_and_content()
+void parser_t::update_node_size_and_content()
 {
     syntax_node &node = current_node();
     node.size = last_token_end - node.pos;
@@ -113,7 +113,7 @@ void parser::update_node_size_and_content()
     node.content = doc_view.substr(node.pos, node.size);
 }
 
-bool parser::parse_description()
+bool parser_t::parse_description()
 {
     if (current_token.of_type(token_type::StringBlock | token_type::StringLiteral))
     {
@@ -123,7 +123,7 @@ bool parser::parse_description()
     return true;
 }
 
-bool parser::parse_definitions()
+bool parser_t::parse_definitions()
 {
     if (!parse_description())
         return false;
@@ -165,7 +165,7 @@ bool parser::parse_definitions()
     return unexpected_token();
 }
 
-bool parser::parse_node(syntax_node_type type, token_type expected_types, NodeParseOptions opts)
+bool parser_t::parse_node(syntax_node_type type, token_type expected_types, NodeParseOptions opts)
 {
     if (!current_token.of_type(expected_types))
     {
@@ -184,7 +184,7 @@ bool parser::parse_node(syntax_node_type type, token_type expected_types, NodePa
     return next_token();
 }
 
-bool parser::parse_operation_definition()
+bool parser_t::parse_operation_definition()
 {
     operation_type_t op_type = parse_operation_type(current_token.value);
     if (op_type == operation_type_t::None)
@@ -214,7 +214,7 @@ bool parser::parse_operation_definition()
    return pop_node();
 }
 
-bool parser::parse_short_operation_definition()
+bool parser_t::parse_short_operation_definition()
 {
     if (!create_new_node(syntax_node_type::OperationDefinition, false))
         return false;
@@ -226,7 +226,7 @@ bool parser::parse_short_operation_definition()
    return pop_node();
 }
 
-bool parser::parse_variable_definitions()
+bool parser_t::parse_variable_definitions()
 {
     size_t child_count = current_node().children.size();
     if (!current_token.of_type(token_type::LParen))
@@ -247,7 +247,7 @@ bool parser::parse_variable_definitions()
     return expect_token(token_type::RParen);
 }
 
-bool parser::parse_variable_definition()
+bool parser_t::parse_variable_definition()
 {
     if (!current_token.of_type(token_type::ParameterLiteral))
     {
@@ -279,7 +279,7 @@ bool parser::parse_variable_definition()
    return pop_node();
 }
 
-bool parser::parse_value_literal(bool is_constant)
+bool parser_t::parse_value_literal(bool is_constant)
 {
     if (current_token.of_type(token_type::LBracket))
         return parse_list(is_constant);
@@ -336,7 +336,7 @@ bool parser::parse_value_literal(bool is_constant)
     return unexpected_token();
 }
 
-bool parser::parse_list(bool is_constant)
+bool parser_t::parse_list(bool is_constant)
 {
     if (!parse_node(syntax_node_type::ListValue, token_type::LBracket))
         return false;
@@ -353,7 +353,7 @@ bool parser::parse_list(bool is_constant)
     return pop_node();
 }
 
-bool parser::parse_object(bool is_constant)
+bool parser_t::parse_object(bool is_constant)
 {
     if (!parse_node(syntax_node_type::ObjectValue, token_type::LBrace))
         return false;
@@ -378,7 +378,7 @@ bool parser::parse_object(bool is_constant)
     return pop_node();
 }
 
-bool parser::parse_type_reference()
+bool parser_t::parse_type_reference()
 {
     if (parse_node(syntax_node_type::ListType, token_type::LBracket, ParseNodeIfMatch))
     {
@@ -412,7 +412,7 @@ bool parser::parse_type_reference()
    return pop_node();
 }
 
-bool parser::parse_directives(bool is_constant)
+bool parser_t::parse_directives(bool is_constant)
 {
     size_t child_count = current_node().children.size();
     while (current_token.of_type(token_type::Directive))
@@ -425,7 +425,7 @@ bool parser::parse_directives(bool is_constant)
     return true;
 }
 
-bool parser::parse_directive(bool is_constant)
+bool parser_t::parse_directive(bool is_constant)
 {
     if (!parse_node(syntax_node_type::Directive, token_type::Directive))
         return false;
@@ -438,7 +438,7 @@ bool parser::parse_directive(bool is_constant)
     return pop_node();
 }
 
-bool parser::parse_arguments(bool is_constant)
+bool parser_t::parse_arguments(bool is_constant)
 {
     if (!current_token.of_type(token_type::LParen))
         return true;
@@ -468,7 +468,7 @@ bool parser::parse_arguments(bool is_constant)
     return expect_token(token_type::RParen);
 }
 
-bool parser::parse_selection_set()
+bool parser_t::parse_selection_set()
 {
     if (!parse_node(syntax_node_type::SelectionSet, token_type::LBrace))
         return false;
@@ -486,7 +486,7 @@ bool parser::parse_selection_set()
    return pop_node();
 }
 
-bool parser::parse_selection()
+bool parser_t::parse_selection()
 {
     if (parse_fragment())
         return true;
@@ -495,7 +495,7 @@ bool parser::parse_selection()
     return false;
 }
 
-bool parser::parse_field()
+bool parser_t::parse_field()
 {
     if (parse_node(syntax_node_type::Comment, token_type::Comment, ParseNodeIfMatch | NodeIsLeaf))
         return true;
@@ -538,7 +538,7 @@ bool parser::parse_field()
     return pop_node();
 }
 
-bool parser::parse_fragment()
+bool parser_t::parse_fragment()
 {
     if (!parse_node(syntax_node_type::FragmentSpread, token_type::FragmentSpread, ParseNodeIfMatch))
         return false;
@@ -571,7 +571,7 @@ bool parser::parse_fragment()
     return pop_node();
 }
 
-bool parser::parse_type_extension()
+bool parser_t::parse_type_extension()
 {
     if (!next_token())
         return report_error(error_code_t::UnexpectedEndOfDocument, "Type extension expected");
@@ -593,7 +593,7 @@ bool parser::parse_type_extension()
     return report_error(error_code_t::InvalidToken, "Expected type, scalar, union, enum, interface or union. Got: {}", current_token.value);
 }
 
-bool parser::parse_input_object_type_definition(syntax_node_type node_type)
+bool parser_t::parse_input_object_type_definition(syntax_node_type node_type)
 {
     if (!parse_keyword_token(node_type, "input"))
         return false;
@@ -613,7 +613,7 @@ bool parser::parse_input_object_type_definition(syntax_node_type node_type)
     return pop_node();
 }
 
-bool parser::parse_enum_type_definition(syntax_node_type node_type)
+bool parser_t::parse_enum_type_definition(syntax_node_type node_type)
 {
     if (!parse_keyword_token(node_type, "enum"))
         return false;
@@ -639,7 +639,7 @@ bool parser::parse_enum_type_definition(syntax_node_type node_type)
     return pop_node();
 }
 
-bool parser::parse_enum_values()
+bool parser_t::parse_enum_values()
 {
     while (!current_token.of_type(token_type::RBrace))
     {
@@ -651,7 +651,7 @@ bool parser::parse_enum_values()
     return true;
 }
 
-bool parser::parse_enum_value()
+bool parser_t::parse_enum_value()
 {
     if (!create_new_node(syntax_node_type::EnumValueDefinition, false))
         return false;
@@ -662,7 +662,7 @@ bool parser::parse_enum_value()
     return pop_node();
 }
 
-bool parser::parse_union_type_definition(syntax_node_type node_type)
+bool parser_t::parse_union_type_definition(syntax_node_type node_type)
 {
     if (!parse_keyword_token(node_type, "union"))
         return false;
@@ -703,7 +703,7 @@ bool parser::parse_union_type_definition(syntax_node_type node_type)
     return pop_node();
 }
 
-bool parser::parse_object_type_definition(syntax_node_type type, std::string_view keyword)
+bool parser_t::parse_object_type_definition(syntax_node_type type, std::string_view keyword)
 {
     if (!parse_keyword_token(type, keyword))
         return false;
@@ -742,7 +742,7 @@ bool parser::parse_object_type_definition(syntax_node_type type, std::string_vie
     return expect_token(token_type::RBrace);
 }
 
-bool parser::parse_implements_interfaces()
+bool parser_t::parse_implements_interfaces()
 {
     if (!expect_keyword_token("implements", true))
         return true;
@@ -771,7 +771,7 @@ bool parser::parse_implements_interfaces()
     return true;
 }
 
-bool parser::parse_argument_definitions(token_type start, token_type end)
+bool parser_t::parse_argument_definitions(token_type start, token_type end)
 {
     size_t child_count = current_node().children.size();
     if (!current_token.of_type(start))
@@ -792,7 +792,7 @@ bool parser::parse_argument_definitions(token_type start, token_type end)
     return expect_token(end);
 }
 
-bool parser::parse_argument_definition()
+bool parser_t::parse_argument_definition()
 {
     if (!parse_description())
         return false;
@@ -816,7 +816,7 @@ bool parser::parse_argument_definition()
    return pop_node();
 }
 
-bool parser::parse_name(token_type name_type)
+bool parser_t::parse_name(token_type name_type)
 {
     if (!current_token.of_type(name_type))
     {
@@ -828,7 +828,7 @@ bool parser::parse_name(token_type name_type)
     return next_token();
 }
 
-bool parser::parse_scalar_type_definition(syntax_node_type node_type)
+bool parser_t::parse_scalar_type_definition(syntax_node_type node_type)
 {
     if (!parse_node(node_type, token_type::Name))
         return false;
@@ -842,7 +842,7 @@ bool parser::parse_scalar_type_definition(syntax_node_type node_type)
    return pop_node();
 }
 
-bool parser::parse_schema_definition(syntax_node_type node_type)
+bool parser_t::parse_schema_definition(syntax_node_type node_type)
 {
     if (!parse_keyword_token(node_type, "schema"))
         return false;
@@ -868,7 +868,7 @@ bool parser::parse_schema_definition(syntax_node_type node_type)
     return  pop_node();
 }
 
-bool parser::parse_operation_type_definition()
+bool parser_t::parse_operation_type_definition()
 {
     if (!create_new_node(syntax_node_type::OperationTypeDefinition, false))
         return false;
@@ -892,7 +892,7 @@ bool parser::parse_operation_type_definition()
     return pop_node();
 }
 
-bool parser::parse_named_type(NodeParseOptions opts)
+bool parser_t::parse_named_type(NodeParseOptions opts)
 {
     if (!parse_node(syntax_node_type::NamedType, token_type::Name, opts))
         return false;
@@ -900,7 +900,7 @@ bool parser::parse_named_type(NodeParseOptions opts)
     return true;
 }
 
-bool parser::parse_directive_definition()
+bool parser_t::parse_directive_definition()
 {
     if (!parse_keyword_token(syntax_node_type::DirectiveDefinition, "directive"))
         return false;
@@ -946,7 +946,7 @@ bool parser::parse_directive_definition()
     return pop_node();
 }
 
-bool parser::parse_fragment_definition()
+bool parser_t::parse_fragment_definition()
 {
     if (!parse_keyword_token(syntax_node_type::FragmentDefinition, "fragment"))
         return false;

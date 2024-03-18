@@ -4,20 +4,20 @@
 
 using namespace blitz_query_cpp;
 
-bool schema_parser::report_type_already_defined(std::string_view type_name)
+bool schema_parser_t::report_type_already_defined(std::string_view type_name)
 {
     return report_error("Type with name '{}' already defined", type_name);
 }
 
-bool schema_parser::report_filed_already_defined(std::string_view type_name, std::string_view field_name)
+bool schema_parser_t::report_filed_already_defined(std::string_view type_name, std::string_view field_name)
 {
     return report_error("Fileld with name '{}' already defined in type '{}'", field_name, type_name);
 }
 
-bool schema_parser::parse(schema &schema, std::string_view schema_string)
+bool schema_parser_t::parse(schema_t &schema, std::string_view schema_string)
 {
-    document doc{std::string(schema_string)};
-    parser parser{doc};
+    document_t doc{std::string(schema_string)};
+    parser_t parser{doc};
     if (!parser.parse())
     {
         return report_error("syntax error: {}", parser.get_error_msg());
@@ -29,7 +29,7 @@ bool schema_parser::parse(schema &schema, std::string_view schema_string)
     return true;
 }
 
-bool schema_parser::process_doc(schema &schema, const document &doc)
+bool schema_parser_t::process_doc(schema_t &schema, const document_t &doc)
 {
     for (const syntax_node *definition : doc.children)
     {
@@ -90,7 +90,7 @@ bool schema_parser::process_doc(schema &schema, const document &doc)
     return true;
 }
 
-bool schema_parser::process_schema_def(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_schema_def(schema_t &schema, const syntax_node &definition)
 {
     for (syntax_node *child : definition.children)
     {
@@ -126,7 +126,7 @@ bool schema_parser::process_schema_def(schema &schema, const syntax_node &defini
     return true;
 }
 
-bool schema_parser::process_schema_ext(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_schema_ext(schema_t &schema, const syntax_node &definition)
 {
     for (syntax_node *child : definition.children)
     {
@@ -166,7 +166,7 @@ bool schema_parser::process_schema_ext(schema &schema, const syntax_node &defini
     return true;
 }
 
-bool schema_parser::process_scalar_type_def(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_scalar_type_def(schema_t &schema, const syntax_node &definition)
 {
     object_type type{type_kind::Scalar, definition.name, definition.description};
     if (!process_directives(type, definition))
@@ -180,7 +180,7 @@ bool schema_parser::process_scalar_type_def(schema &schema, const syntax_node &d
     return true;
 }
 
-bool schema_parser::process_enum_value(object_type &enum_type, const syntax_node &enum_field_node)
+bool schema_parser_t::process_enum_value(object_type &enum_type, const syntax_node &enum_field_node)
 {
     if (enum_field_node.type != syntax_node_type::EnumValueDefinition)
     {
@@ -200,7 +200,7 @@ bool schema_parser::process_enum_value(object_type &enum_type, const syntax_node
     return true;
 }
 
-bool schema_parser::process_enum_type_def(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_enum_type_def(schema_t &schema, const syntax_node &definition)
 {
     object_type enum_type{type_kind::Enum, definition.name, definition.description};
 
@@ -218,7 +218,7 @@ bool schema_parser::process_enum_type_def(schema &schema, const syntax_node &def
     return true;
 }
 
-bool schema_parser::process_parameter_value(parameter_value &param, const syntax_node &value_node)
+bool schema_parser_t::process_parameter_value(parameter_value &param, const syntax_node &value_node)
 {
     switch (value_node.type)
     {
@@ -258,7 +258,7 @@ bool schema_parser::process_parameter_value(parameter_value &param, const syntax
     return false;
 }
 
-bool schema_parser::process_params(named_collection<parameter_value> &arguments, const syntax_node &node)
+bool schema_parser_t::process_params(named_collection<parameter_value> &arguments, const syntax_node &node)
 {
     for (const syntax_node *child_node : node.children)
     {
@@ -277,7 +277,7 @@ bool schema_parser::process_params(named_collection<parameter_value> &arguments,
     return true;
 }
 
-bool schema_parser::process_directives(std::vector<directive> &directives, const syntax_node &definition)
+bool schema_parser_t::process_directives(std::vector<directive> &directives, const syntax_node &definition)
 {
     for (const syntax_node *directive_node : definition.directives)
     {
@@ -291,7 +291,7 @@ bool schema_parser::process_directives(std::vector<directive> &directives, const
     return true;
 }
 
-bool schema_parser::process_directive_type_def(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_directive_type_def(schema_t &schema, const syntax_node &definition)
 {
     directive_type dir{definition.name, definition.description, definition.directive_target};
 
@@ -304,7 +304,7 @@ bool schema_parser::process_directive_type_def(schema &schema, const syntax_node
     return true;
 }
 
-bool schema_parser::process_arguments(named_collection<input_value> &arguments, const syntax_node &node)
+bool schema_parser_t::process_arguments(named_collection<input_value> &arguments, const syntax_node &node)
 {
     for (const syntax_node *child_node : node.arguments)
     {
@@ -323,7 +323,7 @@ bool schema_parser::process_arguments(named_collection<input_value> &arguments, 
     return true;
 }
 
-bool schema_parser::process_filed_type(input_value &value, const syntax_node &node)
+bool schema_parser_t::process_filed_type(input_value &value, const syntax_node &node)
 {
     const syntax_node *type_definition = node.definition_type;
     while (type_definition && type_definition->type == syntax_node_type::ListType)
@@ -348,7 +348,7 @@ bool schema_parser::process_filed_type(input_value &value, const syntax_node &no
     return true;
 }
 
-bool schema_parser::process_input_value(input_value &value, const syntax_node &node)
+bool schema_parser_t::process_input_value(input_value &value, const syntax_node &node)
 {
     if (!process_filed_type(value, node))
         return false;
@@ -366,7 +366,7 @@ bool schema_parser::process_input_value(input_value &value, const syntax_node &n
     return true;
 }
 
-bool schema_parser::process_union_type_def(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_union_type_def(schema_t &schema, const syntax_node &definition)
 {
     object_type union_type{std::string(definition.name), std::string(definition.description)};
     union_type.kind = type_kind::Union;
@@ -386,7 +386,7 @@ bool schema_parser::process_union_type_def(schema &schema, const syntax_node &de
     return true;
 }
 
-bool schema_parser::process_implemented_type(object_type &type, const syntax_node &member_def)
+bool schema_parser_t::process_implemented_type(object_type &type, const syntax_node &member_def)
 {
     auto res = type.implements.emplace(member_def.name);
     if (!res.second)
@@ -397,7 +397,7 @@ bool schema_parser::process_implemented_type(object_type &type, const syntax_nod
     return true;
 }
 
-bool schema_parser::process_input_type_def(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_input_type_def(schema_t &schema, const syntax_node &definition)
 {
     object_type input_type{type_kind::InputObject, std::string(definition.name), std::string(definition.description)};
 
@@ -416,7 +416,7 @@ bool schema_parser::process_input_type_def(schema &schema, const syntax_node &de
     return true;
 }
 
-bool schema_parser::process_input_ext(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_input_ext(schema_t &schema, const syntax_node &definition)
 {
     auto res = schema.types.find(definition.name);
     if (res == schema.types.end())
@@ -441,7 +441,7 @@ bool schema_parser::process_input_ext(schema &schema, const syntax_node &definit
     return true;
 }
 
-bool schema_parser::process_scalar_ext(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_scalar_ext(schema_t &schema, const syntax_node &definition)
 {
     auto res = schema.types.find(definition.name);
     if (res == schema.types.end())
@@ -460,7 +460,7 @@ bool schema_parser::process_scalar_ext(schema &schema, const syntax_node &defini
     return true;
 }
 
-bool schema_parser::process_enum_ext(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_enum_ext(schema_t &schema, const syntax_node &definition)
 {
     auto res = schema.types.find(definition.name);
     if (res == schema.types.end())
@@ -484,7 +484,7 @@ bool schema_parser::process_enum_ext(schema &schema, const syntax_node &definiti
     return true;
 }
 
-bool schema_parser::process_union_ext(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_union_ext(schema_t &schema, const syntax_node &definition)
 {
     auto res = schema.types.find(definition.name);
     if (res == schema.types.end())
@@ -509,7 +509,7 @@ bool schema_parser::process_union_ext(schema &schema, const syntax_node &definit
     return true;
 }
 
-bool schema_parser::process_output_ext(schema &schema, const syntax_node &definition, type_kind kind)
+bool schema_parser_t::process_output_ext(schema_t &schema, const syntax_node &definition, type_kind kind)
 {
     auto res = schema.types.find(definition.name);
     if (res == schema.types.end())
@@ -541,7 +541,7 @@ bool schema_parser::process_output_ext(schema &schema, const syntax_node &defini
 }
 
 
-bool schema_parser::process_input_field(object_type &type, const syntax_node &field_node)
+bool schema_parser_t::process_input_field(object_type &type, const syntax_node &field_node)
 {
     if (field_node.type != syntax_node_type::InputValueDefinition)
     {
@@ -563,7 +563,7 @@ bool schema_parser::process_input_field(object_type &type, const syntax_node &fi
     return true;
 }
 
-bool schema_parser::process_output_type_def(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_output_type_def(schema_t &schema, const syntax_node &definition)
 {
     object_type output_type{type_kind::Object, std::string(definition.name), std::string(definition.description)};
 
@@ -588,7 +588,7 @@ bool schema_parser::process_output_type_def(schema &schema, const syntax_node &d
     return true;
 }
 
-bool schema_parser::process_interface_type_def(schema &schema, const syntax_node &definition)
+bool schema_parser_t::process_interface_type_def(schema_t &schema, const syntax_node &definition)
 {
     object_type output_type{type_kind::Interface, std::string(definition.name), std::string(definition.description)};
 
@@ -613,7 +613,7 @@ bool schema_parser::process_interface_type_def(schema &schema, const syntax_node
     return true;
 }
 
-bool schema_parser::process_output_field(object_type &type, const syntax_node &field_node)
+bool schema_parser_t::process_output_field(object_type &type, const syntax_node &field_node)
 {
     if (field_node.type != syntax_node_type::FieldDefinition)
     {

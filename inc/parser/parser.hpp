@@ -19,11 +19,11 @@ namespace blitz_query_cpp
 
     DECLARE_ENUM_OPERATIONS(NodeParseOptions);
 
-    class parser
+    class parser_t
     {
-        document &doc;
+        document_t &doc;
         tokenizer_t tokenizer;
-        token current_token;
+        token_t current_token;
         std::stack<syntax_node *> nodes_stack;
         std::string error_msg;
         error_code_t error_code = error_code_t::OK;
@@ -31,7 +31,7 @@ namespace blitz_query_cpp
         std::string_view current_description;
 
     public:
-        parser(document &doc_)
+        parser_t(document_t &doc_)
             : doc(doc_),
               tokenizer(doc_.doc_value),
               current_token(token_type::None)

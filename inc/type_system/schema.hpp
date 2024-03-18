@@ -8,7 +8,7 @@
 
 namespace blitz_query_cpp
 {
-    class schema
+    class schema_t
     {
     public:
         named_collection<object_type> types;

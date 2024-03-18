@@ -24,20 +24,20 @@ namespace blitz_query_cpp
             }
         }
 
-        token next_token();
+        token_t next_token();
         index_t get_line_number() const { return line_number; }
         index_t get_pos_in_line() const { return current_pos - line_start; }
 
     private:
         inline void eat_whitespace();
-        inline token single_char_token(token_type type);
-        inline token handle_dot();
-        inline token read_name(index_t skipChars, token_type type);
-        inline token read_comment();
-        inline token handle_eq();
-        inline token read_string();
-        inline token invalid_token_before(index_t offset);
-        inline token read_number();
+        inline token_t single_char_token(token_type type);
+        inline token_t handle_dot();
+        inline token_t read_name(index_t skipChars, token_type type);
+        inline token_t read_comment();
+        inline token_t handle_eq();
+        inline token_t read_string();
+        inline token_t invalid_token_before(index_t offset);
+        inline token_t read_number();
         inline std::string_view unescape_string_value(std::string_view value);
     };
 }
