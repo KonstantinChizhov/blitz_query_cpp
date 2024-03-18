@@ -522,9 +522,9 @@ bool schema_parser::process_output_ext(schema &schema, const syntax_node &defini
     if (!process_directives(output_type, definition))
         return false;
 
-    for (const syntax_node *interface : definition.implements)
+    for (const syntax_node *inter : definition.implements)
     {
-        if (!process_implemented_type(output_type, *interface))
+        if (!process_implemented_type(output_type, *inter))
             return false;
     }
 
@@ -570,9 +570,9 @@ bool schema_parser::process_output_type_def(schema &schema, const syntax_node &d
     if (!process_directives(output_type, definition))
         return false;
 
-    for (const syntax_node *interface : definition.implements)
+    for (const syntax_node *inter : definition.implements)
     {
-        if (!process_implemented_type(output_type, *interface))
+        if (!process_implemented_type(output_type, *inter))
             return false;
     }
 
@@ -595,9 +595,9 @@ bool schema_parser::process_interface_type_def(schema &schema, const syntax_node
     if (!process_directives(output_type, definition))
         return false;
 
-    for (const syntax_node *interface : definition.implements)
+    for (const syntax_node *inter : definition.implements)
     {
-        if (!process_implemented_type(output_type, *interface))
+        if (!process_implemented_type(output_type, *inter))
             return false;
     }
 

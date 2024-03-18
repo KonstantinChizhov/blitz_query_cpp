@@ -293,7 +293,7 @@ bool parser::parse_value_literal(bool is_constant)
     if (parse_node(syntax_node_type::IntValue, token_type::IntLiteral, NodeIsLeaf | ParseNodeIfMatch))
     {
         syntax_node &node = last_node();
-        int64_t value = 0;
+        long long value = 0; 
         auto res = std::from_chars(node.content.begin(), node.content.end(), value);
         if(res.ec != std::errc{})
             return report_error(error_code_t::SyntaxError, "Failed to parse int value. Error: {}", (int)res.ec);
