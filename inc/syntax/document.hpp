@@ -14,7 +14,7 @@ namespace blitz_query_cpp
     public:
         std::string doc_value;
         std::vector<syntax_node> all_nodes;
-
+        
     public:
         document_t(std::string doc)
             : doc_value(std::move(doc))

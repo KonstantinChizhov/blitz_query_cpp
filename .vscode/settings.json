@@ -86,7 +86,9 @@
         "random": "cpp",
         "numbers": "cpp",
         "semaphore": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "ranges": "cpp",
+        "cinttypes": "cpp"
     },
     "editor.tokenColorCustomizations": {
         "textMateRules": [
