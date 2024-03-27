@@ -1,5 +1,6 @@
 #include "data/sql/sql_expr.hpp"
 #include <algorithm>
+#include <string_view>
 
 namespace blitz_query_cpp::sql
 {
@@ -11,88 +12,50 @@ namespace blitz_query_cpp::sql
     sql_expr_t &child_with_type(sql_expr_t &node, sql_expr_type type)
     {
         auto res = std::find_if(node.children.rbegin(), node.children.rend(), [type](auto &v)
-                                { return v.type == type; });
-        if (res == node.children.rend())
-            return node.add_child(type, {});
+                                { return v.type <= type; });
+        std::string_view val;
+        if (res == node.children.rend() || res->type != type)
+        {
+            return *node.children.emplace(res.base(), type, val);
+        }
+        
         return *res;
     }
 
-    sql_expr_t &sql_expr_t::from(std::string_view table)
+    sql_expr_t select(std::span<const std::string_view> columns)
     {
-        add_child(sql_expr_type::From, table);
-        return *this;
+        sql_expr_t res{sql_expr_type::Select};
+        auto &selection = res.add_child(sql_expr_type::SelectColumns);
+        for (auto col : columns)
+        {
+            selection.add_child(sql_expr_type::Column, col);
+        }
+        return res;
     }
 
-    sql_expr_t &sql_expr_t::from(const sql_expr_t &expr)
+    sql_expr_t &operator|(sql_expr_t &expr, from_table_t param)
     {
-        auto &res = add_child(sql_expr_type::From, "");
-        res.children.emplace_back(expr);
-        return *this;
+        expr.add_child(sql_expr_type::From, param.table);
+        return expr;
     }
 
-    sql_expr_t &sql_expr_t::from(sql_expr_t &&expr)
+    sql_expr_t &operator|(sql_expr_t &expr, from_expr_t from_expr)
     {
-        auto &res = add_child(sql_expr_type::From, "");
-        res.children.emplace_back(std::move(expr));
-        return *this;
+        auto &res = expr.add_child(sql_expr_type::From, {});
+        res.children.emplace_back(from_expr.expr);
+        return expr;
     }
 
-    sql_expr_t &sql_expr_t::where(std::string_view column, binary_op op, std::string_view value)
+    sql_expr_t &operator|(sql_expr_t &expr, where_expr_t cond)
     {
-        sql_expr_type op_node_type = static_cast<sql_expr_type>(op);
-        sql_expr_t op_node{op_node_type};
-        op_node.add_child(sql_expr_type::Column, column);
-        op_node.add_child(sql_expr_type::StringLiteral, value);
-        return where(std::move(op_node));
+        sql_expr_t &where_node = child_with_type(expr, sql_expr_type::Where);
+        where_node.children.emplace_back(std::move(cond.expr));
+        return expr;
     }
 
-    sql_expr_t &sql_expr_t::where(std::string_view column, binary_op op, long value)
+    sql_expr_t &operator|(sql_expr_t &expr, or_expr_t cond)
     {
-        sql_expr_type op_node_type = static_cast<sql_expr_type>(op);
-        sql_expr_t op_node{op_node_type};
-        op_node.add_child(sql_expr_type::Column, column);
-        op_node.add_child(sql_expr_type::NumberLiteral, std::to_string(value));
-        return where(std::move(op_node));
-    }
-
-    sql_expr_t &sql_expr_t::where(std::string_view column, binary_op op, double value)
-    {
-        sql_expr_type op_node_type = static_cast<sql_expr_type>(op);
-        sql_expr_t op_node{op_node_type};
-        op_node.add_child(sql_expr_type::Column, column);
-        op_node.add_child(sql_expr_type::NumberLiteral, std::to_string(value));
-        return where(std::move(op_node));
-    }
-
-    sql_expr_t &sql_expr_t::where(const sql_expr_t &expr)
-    {
-        return where(sql_expr_t{expr});
-    }
-
-    sql_expr_t &sql_expr_t::where(sql_expr_t &&expr)
-    {
-        sql_expr_t &where_node = child_with_type(*this, sql_expr_type::Where);
-        where_node.children.emplace_back(std::move(expr));
-        return *this;
-    }
-
-    sql_expr_t &sql_expr_t::or_else(std::string_view column, binary_op op, std::string_view value)
-    {
-        sql_expr_type op_node_type = static_cast<sql_expr_type>(op);
-        sql_expr_t cond{op_node_type};
-        cond.add_child(sql_expr_type::Column, column);
-        cond.add_child(sql_expr_type::StringLiteral, value);
-        return or_else(std::move(cond));
-    }
-
-    sql_expr_t &sql_expr_t::or_else(const sql_expr_t &expr)
-    {
-        return or_else(sql_expr_t{expr});
-    }
-
-    sql_expr_t &sql_expr_t::or_else(sql_expr_t &&expr)
-    {
-        sql_expr_t &where_node = child_with_type(*this, sql_expr_type::Where);
+        sql_expr_t &where_node = child_with_type(expr, sql_expr_type::Where);
         sql_expr_t *op_parent_node = &where_node;
 
         if (where_node.children.size() > 0)
@@ -110,39 +73,45 @@ namespace blitz_query_cpp::sql
             op_parent_node = &where_node.children.emplace_back(std::move(or_op));
         }
 
-        op_parent_node->children.emplace_back(std::move(expr));
-        return *this;
+        op_parent_node->children.emplace_back(std::move(cond.expr));
+        return expr;
     }
 
-    sql_expr_t &sql_expr_t::order_by(std::string_view column, bool ascending)
+    sql_expr_t binary_operation(binary_op op, sql_expr_t &&a, sql_expr_t &&b)
     {
-        sql_expr_t &order_node = child_with_type(*this, sql_expr_type::Order);
-        order_node.add_child(ascending ? sql_expr_type::Asc : sql_expr_type::Desc, column);
-        return *this;
-    }
-
-    sql_expr_t &sql_expr_t::limit(int value)
-    {
-        sql_expr_t &node = child_with_type(*this, sql_expr_type::Limit);
-        node.value = std::to_string(value);
-        return *this;
-    }
-
-    sql_expr_t &sql_expr_t::offset(int value)
-    {
-        sql_expr_t &node = child_with_type(*this, sql_expr_type::Offset);
-        node.value = std::to_string(value);
-        return *this;
-    }
-
-    sql_expr_t select(std::span<const std::string_view> columns)
-    {
-        sql_expr_t res{sql_expr_type::Select};
-        auto &selection = res.add_child(sql_expr_type::SelectColumns);
-        for (auto col : columns)
-        {
-            selection.children.emplace_back(sql_expr_type::Column, col);
-        }
+        sql_expr_t res{get_expr_type(op)};
+        res.children.emplace_back(std::move(a));
+        res.children.emplace_back(std::move(b));
         return res;
     }
+
+    sql_expr_t binary_operation(binary_op op, const sql_expr_t &a, const sql_expr_t &b)
+    {
+        sql_expr_t res{get_expr_type(op)};
+        res.children.emplace_back(a);
+        res.children.emplace_back(b);
+        return res;
+    }
+
+    sql_expr_t &operator|(sql_expr_t &expr, order_by_t param)
+    {
+        sql_expr_t &order_node = child_with_type(expr, sql_expr_type::Order);
+        order_node.add_child(param.ascending ? sql_expr_type::Asc : sql_expr_type::Desc, param.column);
+        return expr;
+    }
+
+    sql_expr_t &operator|(sql_expr_t &expr, limit_t param)
+    {
+        sql_expr_t &node = child_with_type(expr, sql_expr_type::Limit);
+        node.value = std::to_string(param.value);
+        return expr;
+    }
+
+    sql_expr_t &operator|(sql_expr_t &expr, offset_t param)
+    {
+        sql_expr_t &node = child_with_type(expr, sql_expr_type::Offset);
+        node.value = std::to_string(param.value);
+        return expr;
+    }
+
 }

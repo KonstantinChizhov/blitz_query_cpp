@@ -40,11 +40,14 @@ namespace blitz_query_cpp::sql
     {
         if (current.expr->children.size() < 2)
             return false;
-        push_value(") ");
+        bool need_paren = current.expr->children[0].children.size() > 0 || current.expr->children[1].children.size() > 0;
+        if (need_paren)
+            push_value(")");
         push_node(current.expr->children[1]);
         push_value(op);
         push_node(current.expr->children[0]);
-        buffer.append(1, '(');
+        if (need_paren)
+            buffer.append(1, '(');
 
         return true;
     }
@@ -185,7 +188,16 @@ namespace blitz_query_cpp::sql
                     buffer.append(1, '"');
                 }
                 else
-                    visit_children(current);
+                {
+                    std::string_view end, sep = ", ";
+                    if (current.expr->children[0].type == sql_expr_type::Select || current.expr->children[0].type == sql_expr_type::SelectDistinct)
+                    {
+                        buffer.append(1, '(');
+                        end = ")";
+                        sep = "), (";
+                    }
+                    visit_children(current, sep, end);
+                }
                 break;
             case sql_expr_type::Insert:
                 break;
@@ -209,6 +221,16 @@ namespace blitz_query_cpp::sql
                 visit_children(current, ", ");
                 break;
             case sql_expr_type::InnerJoin:
+                buffer.append(" INNER JOIN ");
+                if (current.expr->children.size() != 3)
+                {
+                    return false;
+                }
+                push_node(current.expr->children[2]);
+                push_value(" = ");
+                push_node(current.expr->children[1]);
+                push_value(" ON ");
+                push_node(current.expr->children[0]);
                 break;
             case sql_expr_type::LeftJoin:
                 break;
@@ -225,14 +247,26 @@ namespace blitz_query_cpp::sql
             case sql_expr_type::Any:
                 break;
             case sql_expr_type::Beetween:
+                buffer.append("BEETWEEN ");
+                if (current.expr->children.size() != 2)
+                    return false;
+                visit_children(current, " AND ");
                 break;
             case sql_expr_type::Exists:
+                buffer.append("EXISTS(");
+                if (current.expr->children.size() != 1)
+                    return false;
+                visit_children(current, "", ") ");
                 break;
             case sql_expr_type::In:
+                buffer.append("IN( ");
+                visit_children(current, ", ", ") ");
                 break;
             case sql_expr_type::IsNull:
+                buffer.append(" IS NULL");
                 break;
             case sql_expr_type::IsNotNull:
+                buffer.append(" NOT IS NULL");
                 break;
             case sql_expr_type::Limit:
                 buffer.append(" LIMIT ");
@@ -242,15 +276,19 @@ namespace blitz_query_cpp::sql
                 buffer.append(1, '"');
                 buffer.append(current.expr->value);
                 buffer.append(1, '"');
-                buffer.append(" ASC ");
+                buffer.append(" ASC");
                 break;
             case sql_expr_type::Desc:
                 buffer.append(1, '"');
                 buffer.append(current.expr->value);
                 buffer.append(1, '"');
-                buffer.append(" DESC ");
+                buffer.append(" DESC");
                 break;
             case sql_expr_type::Not:
+                buffer.append(" NOT ");
+                if (current.expr->children.size() != 1)
+                    return false;
+                push_node(current.expr->children[0]);
                 break;
             case sql_expr_type::Set:
                 break;
