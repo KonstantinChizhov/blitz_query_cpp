@@ -11,6 +11,7 @@ namespace blitz_query_cpp::sql
         std::vector<expr_node> node_stack;
         std::string buffer;
         bool handle_binary_op(expr_node &current, std::string_view op);
+        bool handle_join(expr_node &current, std::string_view join_type);
         void visit_children(expr_node &node, std::string_view separator = {}, std::string_view end = {});
         void write_quoted_value(expr_node &node);
         void push_value(std::string_view value);

@@ -5,6 +5,47 @@ namespace blitz_query_cpp::sql
     enum class sql_expr_type
     {
         None = 0,
+        // set operation
+        Union,
+        UnionAll,
+        Intersect,
+        Except,
+
+        // top level statements
+        Select,
+        SelectDistinct,
+        Insert,
+        Update,
+        Delete,
+
+        // second level statements. realtive order is important
+        SelectColumns,
+        From,
+        Into,
+        Values,
+        Set,
+        InnerJoin,
+        LeftJoin,
+        RightJoin,
+        OuterJoin,
+        Where,
+        Group,
+        Having,
+        Order,
+        Offset,
+        Limit,
+
+        
+        All,
+        Any,
+        Beetween,
+        Exists,
+        In,
+        IsNull,
+        IsNotNull,
+        Not,
+
+        // values
         Column,
         TableName,
         SchemaName,
@@ -14,6 +55,7 @@ namespace blitz_query_cpp::sql
         Parameter,
         Asias,
 
+        // binary operations
         Plus,
         Minus,
         Multiply,
@@ -28,46 +70,11 @@ namespace blitz_query_cpp::sql
         Gq, // >=
         Like,
 
-        // top level statements
-        Select,
-        SelectDistinct,
-        Insert,
-        Update,
-        Delete,
-
-        // second level statements. realtive order is important
-        From,
-        InnerJoin,
-        LeftJoin,
-        RightJoin,
-        OuterJoin,
-        Where,
-        Group,
-        Having,
-        Order,
-        Offset,
-        Limit,
-
+        
         On,
-        SelectColumns,
-        Values,
-        All,
-        Any,
-        Beetween,
-        Exists,
-        In,
-        IsNull,
-        IsNotNull,
-      
         Asc,
         Desc,
-        Not,
-        Set,
-        // set operation
-        Union,
-        UnionAll,
-        Intersect,
-        Except,
+       
     };
 
     enum class binary_op
@@ -104,6 +111,16 @@ namespace blitz_query_cpp::sql
     };
 
     inline constexpr sql_expr_type get_expr_type(binary_op op)
+    {
+        return static_cast<sql_expr_type>(op);
+    }
+
+    inline constexpr sql_expr_type get_expr_type(join_kind kind)
+    {
+        return static_cast<sql_expr_type>(kind);
+    }
+
+    inline constexpr sql_expr_type get_expr_type(set_operation op)
     {
         return static_cast<sql_expr_type>(op);
     }

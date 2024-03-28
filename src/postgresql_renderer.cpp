@@ -52,6 +52,13 @@ namespace blitz_query_cpp::sql
         return true;
     }
 
+    bool postgresql_renderer::handle_join(expr_node &current, std::string_view join_type)
+    {
+        buffer.append(join_type);
+        visit_children(current);
+        return true;
+    }
+
     void postgresql_renderer::write_quoted_value(expr_node &current)
     {
         buffer.append(1, '"');
@@ -80,11 +87,20 @@ namespace blitz_query_cpp::sql
                 break;
             case sql_expr_type::TableName:
                 write_quoted_value(current);
+                  // write column ref if any
+                if (current.expr->children.size() > 0)
+                {
+                    buffer.append(1, '.');
+                    push_node(current.expr->children[0]);
+                }
                 break;
             case sql_expr_type::SchemaName:
                 buffer.append(1, '"');
                 buffer.append(current.expr->value);
                 buffer.append("\".");
+                if (current.expr->children.size() == 0)
+                    return false;
+                push_node(current.expr->children[0]);
                 break;
             case sql_expr_type::Function:
                 buffer.append(current.expr->value);
@@ -221,24 +237,28 @@ namespace blitz_query_cpp::sql
                 visit_children(current, ", ");
                 break;
             case sql_expr_type::InnerJoin:
-                buffer.append(" INNER JOIN ");
-                if (current.expr->children.size() != 3)
-                {
+                if (!handle_join(current, " INNER JOIN "))
                     return false;
-                }
-                push_node(current.expr->children[2]);
-                push_value(" = ");
-                push_node(current.expr->children[1]);
-                push_value(" ON ");
-                push_node(current.expr->children[0]);
                 break;
             case sql_expr_type::LeftJoin:
+                if (!handle_join(current, " LEFT JOIN "))
+                    return false;
                 break;
             case sql_expr_type::RightJoin:
+                if (!handle_join(current, " RIGHT JOIN "))
+                    return false;
                 break;
             case sql_expr_type::OuterJoin:
+                if (!handle_join(current, " FULL OUTER JOIN "))
+                    return false;
                 break;
             case sql_expr_type::On:
+                if (current.expr->children.size() != 2)
+                    return false;
+                buffer.append(" ON ");
+                push_node(current.expr->children[1]);
+                push_value(" = ");
+                push_node(current.expr->children[0]);
                 break;
             case sql_expr_type::Values:
                 break;
@@ -273,16 +293,32 @@ namespace blitz_query_cpp::sql
                 buffer.append(current.expr->value);
                 break;
             case sql_expr_type::Asc:
-                buffer.append(1, '"');
-                buffer.append(current.expr->value);
-                buffer.append(1, '"');
-                buffer.append(" ASC");
+                if (current.expr->children.size() == 0)
+                {
+                    buffer.append(1, '"');
+                    buffer.append(current.expr->value);
+                    buffer.append(1, '"');
+                    buffer.append(" ASC");
+                }
+                else
+                {
+                    push_value(" ASC");
+                    visit_children(current);
+                }
                 break;
             case sql_expr_type::Desc:
-                buffer.append(1, '"');
-                buffer.append(current.expr->value);
-                buffer.append(1, '"');
-                buffer.append(" DESC");
+                if (current.expr->children.size() == 0)
+                {
+                    buffer.append(1, '"');
+                    buffer.append(current.expr->value);
+                    buffer.append(1, '"');
+                    buffer.append(" DESC");
+                }
+                else
+                {
+                    push_value(" DESC");
+                    visit_children(current);
+                }
                 break;
             case sql_expr_type::Not:
                 buffer.append(" NOT ");

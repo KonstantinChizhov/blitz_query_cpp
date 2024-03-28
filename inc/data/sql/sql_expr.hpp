@@ -13,6 +13,7 @@ namespace blitz_query_cpp::sql
     {
         sql_expr_t() {}
         sql_expr_t(sql_expr_type t, std::string_view val = {}) : type{t}, value{val} {}
+        sql_expr_t(sql_expr_type t, std::string_view val, sql_expr_t &&child) : type{t}, value{val}, children{std::move(child)} {}
 
         sql_expr_type type;
         std::string value;
@@ -20,7 +21,13 @@ namespace blitz_query_cpp::sql
         sql_expr_t &add_child(sql_expr_type t, std::string_view val = {});
     };
 
+    //-----------------------------------
+    // SELECT
+    //-----------------------------------
+
     sql_expr_t select(std::span<const std::string_view> columns);
+
+    inline sql_expr_t select() { return {sql_expr_type::Select}; }
 
     inline sql_expr_t select(std::initializer_list<std::string_view> columns)
     {
@@ -30,25 +37,17 @@ namespace blitz_query_cpp::sql
     //-----------------------------------
     // FROM
     //-----------------------------------
-    struct from_table_t
-    {
-        std::string_view table;
-    };
 
     struct from_expr_t
     {
         sql_expr_t expr;
     };
 
-    inline from_table_t from(std::string_view table) { return from_table_t{table}; }
     inline from_expr_t from(const sql_expr_t &expr) { return from_expr_t{expr}; }       // copy expression
     inline from_expr_t from(sql_expr_t &&expr) { return from_expr_t{std::move(expr)}; } // move from temporary
 
-    sql_expr_t &operator|(sql_expr_t &, from_table_t);
-    sql_expr_t &operator|(sql_expr_t &, from_expr_t);
-
-    inline sql_expr_t &&operator|(sql_expr_t &&expr, from_table_t table) { return std::move(expr | table); }
-    inline sql_expr_t &&operator|(sql_expr_t &&expr, from_expr_t table) { return std::move(expr | table); }
+    sql_expr_t &operator|(sql_expr_t &, from_expr_t &&);
+    inline sql_expr_t &&operator|(sql_expr_t &&expr, from_expr_t &&table) { return std::move(expr | std::move(table)); }
 
     //-----------------------------------
     // WHERE
@@ -62,8 +61,8 @@ namespace blitz_query_cpp::sql
     inline where_expr_t where(const sql_expr_t &expr) { return where_expr_t{expr}; }       // copy expression
     inline where_expr_t where(sql_expr_t &&expr) { return where_expr_t{std::move(expr)}; } // move from temporary
 
-    sql_expr_t &operator|(sql_expr_t &, where_expr_t);
-    inline sql_expr_t &&operator|(sql_expr_t &&expr, where_expr_t cond) { return std::move(expr | cond); }
+    sql_expr_t &operator|(sql_expr_t &, where_expr_t &&);
+    inline sql_expr_t &&operator|(sql_expr_t &&expr, where_expr_t &&cond) { return std::move(expr | std::move(cond)); }
 
     //-----------------------------------
     // OR
@@ -77,8 +76,8 @@ namespace blitz_query_cpp::sql
     inline or_expr_t or_else(const sql_expr_t &expr) { return or_expr_t{expr}; }       // copy expression
     inline or_expr_t or_else(sql_expr_t &&expr) { return or_expr_t{std::move(expr)}; } // move from temporary
 
-    sql_expr_t &operator|(sql_expr_t &, or_expr_t);
-    inline sql_expr_t &&operator|(sql_expr_t &&expr, or_expr_t cond) { return std::move(expr | cond); }
+    sql_expr_t &operator|(sql_expr_t &, or_expr_t &&);
+    inline sql_expr_t &&operator|(sql_expr_t &&expr, or_expr_t &&cond) { return std::move(expr | std::move(cond)); }
 
     //-----------------------------------
     // operations
@@ -111,19 +110,70 @@ namespace blitz_query_cpp::sql
     };
 
     //-----------------------------------
+    // table
+    //-----------------------------------
+
+    inline sql_expr_t table(std::string_view name)
+    {
+        return {sql_expr_type::TableName, name};
+    }
+
+    inline sql_expr_t table(std::string_view schema, std::string_view table)
+    {
+        return {sql_expr_type::SchemaName, schema, {sql_expr_type::TableName, table}};
+    }
+
+    //-----------------------------------
+    // column
+    //-----------------------------------
+
+    struct column_t
+    {
+        sql_expr_t expr;
+        operator sql_expr_t &() { return expr; }
+    };
+
+    inline column_t column(std::string_view table, std::string_view column)
+    {
+        return {{sql_expr_type::TableName, table, {sql_expr_type::Column, column}}};
+    }
+
+    inline column_t column(std::string_view schema, std::string_view table, std::string_view column)
+    {
+        return {{sql_expr_type::SchemaName, schema, {sql_expr_type::TableName, table, {sql_expr_type::Column, column}}}};
+    }
+
+    inline sql_expr_t alias(sql_expr_t &&expr, std::string_view name)
+    {
+        return {sql_expr_type::Asias, name, std::move(expr)};
+    }
+
+    inline sql_expr_t alias(const sql_expr_t &expr, std::string_view name)
+    {
+        return {sql_expr_type::Asias, name, sql_expr_t{expr}};
+    }
+
+    inline column_t alias(column_t &&expr, std::string_view name)
+    {
+        return {{sql_expr_type::Asias, name, std::move(expr.expr)}};
+    }
+
+    sql_expr_t &operator|(sql_expr_t &, column_t &&);
+    inline sql_expr_t &&operator|(sql_expr_t &&expr, column_t &&param) { return std::move(expr | std::move(param)); }
+
+    //-----------------------------------
     // order by
     //-----------------------------------
 
     struct order_by_t
     {
-        std::string_view column;
+        sql_expr_t column;
         bool ascending;
     };
 
-    inline order_by_t order_by(std::string_view column, bool ascending = true) { return order_by_t{column, ascending}; }
-    sql_expr_t &operator|(sql_expr_t &, order_by_t);
-    inline sql_expr_t &&operator|(sql_expr_t &&expr, order_by_t param) { return std::move(expr | param); }
-
+    inline order_by_t order_by(column_t &&column, bool ascending = true) { return order_by_t{std::move(column), ascending}; }
+    sql_expr_t &operator|(sql_expr_t &, order_by_t&&);
+    inline sql_expr_t &&operator|(sql_expr_t &&expr, order_by_t &&param) { return std::move(expr | std::move(param)); }
 
     //-----------------------------------
     // limit offset
@@ -147,4 +197,28 @@ namespace blitz_query_cpp::sql
     sql_expr_t &operator|(sql_expr_t &, offset_t);
     inline sql_expr_t &&operator|(sql_expr_t &&expr, offset_t param) { return std::move(expr | param); }
 
+    //-----------------------------------
+    // join
+    //-----------------------------------
+
+    struct join_t
+    {
+        sql_expr_t expr;
+        sql_expr_t column1;
+        sql_expr_t column2;
+        join_kind kind;
+    };
+
+    inline join_t join(const sql_expr_t &expr, join_kind kind, const sql_expr_t &column1, const sql_expr_t &column2)
+    {
+        return join_t{expr, column1, column2, kind};
+    }
+
+    inline join_t join(sql_expr_t &&expr, join_kind kind, sql_expr_t &&column1, sql_expr_t &&column2)
+    {
+        return join_t{std::move(expr), std::move(column1), std::move(column2), kind};
+    }
+
+    sql_expr_t &operator|(sql_expr_t &, join_t &&);
+    inline sql_expr_t &&operator|(sql_expr_t &&expr, join_t &&param) { return std::move(expr | std::move(param)); }
 }
