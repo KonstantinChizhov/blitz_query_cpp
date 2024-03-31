@@ -26,6 +26,101 @@ bool schema_parser_t::parse(schema_t &schema, std::string_view schema_string)
     {
         return false;
     }
+    if (!compile(schema))
+    {
+        return false;
+    }
+    return true;
+}
+
+bool resolve_field(schema_t &schema, object_type &type, field &item);
+bool resolve_input_value(schema_t &schema, object_type &type, input_value &item);
+
+template <class T>
+bool resolve_directives(const schema_t &schema, T &item)
+{
+    for (directive &dir : item.directives)
+    {
+        if (const auto dir_type = schema.find_directive_type(dir.name))
+        {
+            dir.directive_type = dir_type;
+        }
+    }
+    return true;
+}
+
+template <class T>
+bool resolve_type(const schema_t &schema, T &item)
+{
+    if (const auto type = schema.find_type(item.field_type.name))
+    {
+        item.field_type.type = type;
+    }
+    else if (item.declaring_type.name == item.field_type.name) // recursive field
+    {
+        item.field_type.type = item.declaring_type.type;
+    }
+    return true;
+}
+
+bool resolve_input_value(schema_t &schema, object_type &type, input_value &item)
+{
+    item.declaring_type.type = &type;
+
+    if (!resolve_directives(schema, item))
+        return false;
+
+    if (!resolve_type(schema, item))
+        return false;
+
+    return true;
+}
+
+bool resolve_field(schema_t &schema, object_type &type, field &item)
+{
+    if (!resolve_input_value(schema, type, item))
+        return false;
+
+    for (auto &carg : item.arguments)
+    {
+        auto& arg = *const_cast<input_value*>(&carg);
+
+        if (!resolve_directives(schema, arg))
+            return false;
+        if (!resolve_input_value(schema, type, arg))
+            return false;        
+    }
+    return true;
+}
+
+bool schema_parser_t::compile(schema_t &schema)
+{
+    if (!resolve_directives(schema, schema))
+        return false;
+
+    for (auto &type_const : schema.types)
+    {
+        // objects are hashed by name, so changing everything but name sould be kind of OK
+        auto& type = *const_cast<object_type*>(&type_const);
+
+        if (!resolve_directives(schema, type))
+            return false;
+
+        for (auto &cf : type.fields)
+        {
+            auto& fld = *const_cast<field*>(&cf);
+            resolve_field(schema, type, fld);
+        }
+    }
+
+    auto query_type = schema.types.find(schema.query_type_name);
+    if (query_type != schema.types.end())
+        schema.query_type = &*query_type;
+
+    auto mutation_type = schema.types.find(schema.mutation_type_name);
+    if (mutation_type != schema.types.end())
+        schema.mutation_type = &*mutation_type;
+    
     return true;
 }
 
@@ -80,11 +175,11 @@ bool schema_parser_t::process_doc(schema_t &schema, const document_t &doc)
             break;
         case syntax_node_type::InterfaceTypeExtension:
             result = process_output_ext(schema, *definition, type_kind::Interface);
-             break;
+            break;
         default:
             return report_error("Not a schema definition found: {}", enum_name(definition->type));
         }
-        if(!result)
+        if (!result)
             return false;
     }
     return true;
@@ -285,7 +380,7 @@ bool schema_parser_t::process_directives(std::vector<directive> &directives, con
 
         if (!process_params(dir.parameters, *directive_node))
             return false;
-        
+
         directives.push_back(std::move(dir));
     }
     return true;
@@ -539,7 +634,6 @@ bool schema_parser_t::process_output_ext(schema_t &schema, const syntax_node &de
 
     return true;
 }
-
 
 bool schema_parser_t::process_input_field(object_type &type, const syntax_node &field_node)
 {

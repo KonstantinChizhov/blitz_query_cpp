@@ -48,6 +48,7 @@ namespace blitz_query_cpp::sql
 
     sql_expr_t &operator|(sql_expr_t &, from_expr_t &&);
     inline sql_expr_t &&operator|(sql_expr_t &&expr, from_expr_t &&table) { return std::move(expr | std::move(table)); }
+    inline sql_expr_t &operator|=(sql_expr_t &expr, from_expr_t &&table) { return expr | std::move(table); }
 
     //-----------------------------------
     // WHERE
@@ -160,6 +161,7 @@ namespace blitz_query_cpp::sql
 
     sql_expr_t &operator|(sql_expr_t &, column_t &&);
     inline sql_expr_t &&operator|(sql_expr_t &&expr, column_t &&param) { return std::move(expr | std::move(param)); }
+    inline sql_expr_t &operator|=(sql_expr_t &expr, column_t &&param) { return expr | std::move(param); }
 
     //-----------------------------------
     // order by

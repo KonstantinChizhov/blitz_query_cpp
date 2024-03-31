@@ -67,5 +67,7 @@ namespace blitz_query_cpp
         {
             return process_directives(type.directives, definition);
         }
+
+        bool compile(schema_t &schema);
     };
 }

@@ -229,8 +229,11 @@ namespace blitz_query_cpp::sql
                 visit_children(current, " AND ");
                 break;
             case sql_expr_type::Having:
+                visit_children(current, " AND ");
                 break;
             case sql_expr_type::Group:
+                buffer.append(" GROUP BY ");
+                visit_children(current, ", ");
                 break;
             case sql_expr_type::Order:
                 buffer.append(" ORDER BY ");

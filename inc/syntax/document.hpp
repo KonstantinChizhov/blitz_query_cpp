@@ -19,8 +19,13 @@ namespace blitz_query_cpp
         document_t(std::string doc)
             : doc_value(std::move(doc))
         {
+            init();
+        }
+
+        void init()
+        {
             pos = 0;
-            size = doc.size(),
+            size = doc_value.size(),
             type = syntax_node_type::Document;
             syntax_node::content = doc_value;
         }

@@ -4,7 +4,7 @@
 #include <type_system/value_kind.hpp>
 #include <syntax/directive_target.hpp>
 #include <unordered_set>
-#include <optional>
+#include <algorithm>
 #include <vector>
 #include <string_view>
 #include <string>
@@ -88,7 +88,7 @@ namespace blitz_query_cpp
         directive(std::string_view name_) : name{name_} {}
 
         std::string name;
-        directive_type *directive_type = nullptr;
+        const directive_type *directive_type = nullptr;
         named_collection<parameter_value> parameters;
     };
 
@@ -99,6 +99,18 @@ namespace blitz_query_cpp
         std::vector<directive> directives;
         bool is_deprecated = false;
         std::string deprecation_reason;
+
+        const directive *find_directive(std::string_view name) const
+        {
+            auto dir = std::find_if(directives.begin(), directives.end(),
+                                    [name](auto &dir)
+                                    {
+                                        return dir.name == name;
+                                    });
+            if (dir == directives.end())
+                return nullptr;
+            return dir.base();
+        }
     };
 
     struct type_reference
@@ -106,7 +118,7 @@ namespace blitz_query_cpp
         type_reference() = default;
         type_reference(std::string_view name_) : name(name_) {}
         std::string name;
-        struct object_type *type = nullptr;
+        const struct object_type *type = nullptr;
     };
 
     struct input_value : type_system_object_with_directives
