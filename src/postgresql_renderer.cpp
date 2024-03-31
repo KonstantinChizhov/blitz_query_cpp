@@ -59,11 +59,20 @@ namespace blitz_query_cpp::sql
         return true;
     }
 
+    bool pg_need_to_qoute(std::string_view value)
+    {
+        return !std::all_of(value.begin(), value.end(), [](char c)
+                            { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_'; });
+    }
+
     void postgresql_renderer::write_quoted_value(expr_node &current)
     {
-        buffer.append(1, '"');
+        bool quote = pg_need_to_qoute(current.expr->value);
+        if (quote)
+            buffer.append(1, '"');
         buffer.append(current.expr->value);
-        buffer.append(1, '"');
+        if (quote)
+            buffer.append(1, '"');
     }
 
     bool postgresql_renderer::render(const sql_expr_t &expr)
@@ -87,7 +96,7 @@ namespace blitz_query_cpp::sql
                 break;
             case sql_expr_type::TableName:
                 write_quoted_value(current);
-                  // write column ref if any
+                // write column ref if any
                 if (current.expr->children.size() > 0)
                 {
                     buffer.append(1, '.');
@@ -95,13 +104,19 @@ namespace blitz_query_cpp::sql
                 }
                 break;
             case sql_expr_type::SchemaName:
-                buffer.append(1, '"');
+            {
+                bool quote = pg_need_to_qoute(current.expr->value);
+                if (quote)
+                    buffer.append(1, '"');
                 buffer.append(current.expr->value);
-                buffer.append("\".");
+                if (quote)
+                    buffer.append(1, '"');
+                buffer.append(1, '.');
                 if (current.expr->children.size() == 0)
                     return false;
                 push_node(current.expr->children[0]);
-                break;
+            }
+            break;
             case sql_expr_type::Function:
                 buffer.append(current.expr->value);
                 buffer.append(1, '(');
@@ -128,9 +143,13 @@ namespace blitz_query_cpp::sql
                     alias.append(")");
                     buffer.append("(");
                 }
-                alias.append(" as \"");
+                alias.append(" as ");
+                bool quote = pg_need_to_qoute(current.expr->value);
+                if (quote)
+                    alias.append(1, '"');
                 alias.append(current.expr->value);
-                alias.append(1, '"');
+                if (quote)
+                    alias.append(1, '"');
                 visit_children(current, ", ", alias);
             }
             break;

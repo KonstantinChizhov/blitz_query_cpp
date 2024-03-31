@@ -57,6 +57,6 @@ TEST(SqlResolver, SimpleSelect)
         sql::postgresql_renderer renderer;
         renderer.render(*pexpr);
         std::string sql = renderer.get_string();
-        EXPECT_EQ(sql, "SELECT \"test\".\"user\".\"name\", \"test\".\"user\".\"age\", \"test\".\"user\".\"id\", \"test\".\"user\".\"AccountId\" FROM \"test\".\"user\"");
+        EXPECT_EQ(sql, "SELECT _a1.name, _a1.age, _a1.id, _a1.\"AccountId\" FROM test.user as _a1");
     }
 }

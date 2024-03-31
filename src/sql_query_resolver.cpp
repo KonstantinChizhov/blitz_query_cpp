@@ -42,8 +42,10 @@ bool sql_query_resolver::process_field(query_context &, const field &field_decl)
         if (column_param != column_dir->parameters.end())
             column_name = column_param->string_value;
     }
-
-    _query |= column(_schema_name, _table_name, column_name);
+    if(current_selection_alias.empty())
+        _query |= column(_schema_name, _table_name, column_name);
+    else
+        _query |= column(current_selection_alias, column_name);
     return true;
 }
 
@@ -86,12 +88,15 @@ bool sql_query_resolver::process_query(query_context &context)
     _query = select();
     auto selection_set = object->selection_set;
 
+    current_selection_alias = next_alias_name();
+    context.data[type->name] = current_selection_alias;
+
     for (auto field_node : selection_set->children)
     {
         auto field_decl = type->fields.find(field_node->name);
         if (field_decl == type->fields.end())
             return context.report_error("Field '{}' is not found in object '{}'", field_node->name, object->name);
-        if(!process_field(context, *field_decl))
+        if (!process_field(context, *field_decl))
             return false;
     }
 
@@ -102,13 +107,13 @@ bool sql_query_resolver::process_query(query_context &context)
             auto projected = projected_dir->parameters.find("projected");
             if (projected == projected_dir->parameters.end() || projected->bool_value == true)
             {
-                if(!process_field(context, field_decl))
+                if (!process_field(context, field_decl))
                     return false;
             }
         }
     }
 
-    _query |= from(table(_schema_name, _table_name));
+    _query |= from(alias(table(_schema_name, _table_name), current_selection_alias));
 
     context.result = std::move(_query);
 
